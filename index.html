@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoResist — Eletrorresistividade de Campo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#23404f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GeoResist">
+<style>
+:root{
+  --bg:#f3f1ec; --card:#ffffff; --ink:#1f2933; --muted:#66707a; --line:#dcd8cf;
+  --brand:#23404f; --brand2:#2f5d73; --accent:#c96a2b; --ok:#2e7d4f; --warn:#b3261e;
+  --cond:#1d4ed8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+header{background:var(--brand);color:#fff;padding:10px 14px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.hrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:980px;margin:0 auto}
+.logo{font-weight:700;letter-spacing:.3px;font-size:17px;display:flex;align-items:center;gap:8px}
+.logo svg{flex:none}
+.logo small{font-weight:400;opacity:.75;font-size:12px}
+.hrow .grow{flex:1}
+header select{max-width:240px;background:#fff;border-radius:8px;border:0;padding:7px 8px;font-size:14px}
+nav{display:flex;gap:4px;max-width:980px;margin:8px auto 0;overflow-x:auto}
+nav button{background:transparent;border:0;color:#cfe0e8;padding:8px 12px;border-radius:8px 8px 0 0;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--bg);color:var(--brand)}
+nav button .ic{display:none}
+@media (max-width:760px){
+  header{padding:8px 10px}
+  .logo small{display:none}
+  nav#tabs{position:fixed;left:0;right:0;bottom:0;margin:0;max-width:none;background:#fff;border-top:1px solid var(--line);box-shadow:0 -2px 8px rgba(0,0,0,.08);z-index:30;gap:0;justify-content:space-around;padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
+  nav#tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;color:#66707a;font-size:11px;padding:4px 0;border-radius:8px;min-width:0}
+  nav#tabs button .ic{display:block;font-size:20px;line-height:1.1}
+  nav#tabs button.on{background:#e6eef2;color:var(--brand)}
+  main{padding:10px 10px 90px}
+  .card{padding:12px}
+  .toast{bottom:96px}
+}
+label.f input,label.f select,label.f textarea{font-size:16px!important}
+table.t tr.susp td{background:#fff3c4!important}
+table.t tr.susp td.st::after{content:" ⚠";color:#b26a00}
+.status{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:2px 0 8px}
+.status b{color:var(--brand)}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600;background:#eef2f4;color:var(--brand)}
+.chip.ok{background:#e3f4ea;color:#1f6b40}.chip.no{background:#fdecea;color:#a1271b}
+details.cfg{border:1px solid var(--line);border-radius:10px;padding:0 10px;margin-bottom:10px;background:#fbfaf7}
+details.cfg>summary{cursor:pointer;padding:10px 0;font-weight:600;color:var(--brand2);list-style:none}
+details.cfg>summary::-webkit-details-marker{display:none}
+details.cfg>summary::before{content:"⚙ "}
+details.cfg[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+.gpsbtn{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+#saveInd{font-size:11px;color:#bfe3c9;min-width:44px;text-align:right}
+#btnTela.on{background:#fde047!important;border-color:#fde047!important;color:#23404f!important}
+
+main{max-width:980px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 10px;color:var(--brand)}
+.card h3{font-size:14px;margin:12px 0 6px;color:var(--brand2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}
+input,select,textarea{font:inherit;color:var(--ink)}
+label.f input,label.f select,label.f textarea{border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;font-size:15px}
+textarea{min-height:60px;resize:vertical}
+.btn{border:1px solid var(--brand2);background:#fff;color:var(--brand2);border-radius:8px;padding:8px 12px;font-weight:600;font-size:14px;cursor:pointer}
+.btn.pri{background:var(--brand2);color:#fff}
+.btn.sm{padding:5px 9px;font-size:13px}
+.btn.dan{border-color:var(--warn);color:var(--warn)}
+.btn:active{transform:translateY(1px)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12px;color:var(--muted)}
+.hidden{display:none!important}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th{background:#eef2f4;color:var(--brand);font-size:12px;text-align:center;padding:6px 4px;border:1px solid var(--line);position:sticky;top:0}
+table.t td{border:1px solid var(--line);padding:2px 4px;text-align:center;white-space:nowrap}
+table.t td.st{font-weight:700;color:var(--brand)}
+table.t td.k{color:var(--muted);font-variant-numeric:tabular-nums}
+table.t td input{width:100%;min-width:58px;border:0;background:transparent;text-align:center;padding:8px 2px;font-size:16px;font-variant-numeric:tabular-nums}
+table.t td input:focus{outline:2px solid var(--accent);background:#fff8f1;border-radius:4px}
+#sevTable td input{min-width:44px;font-size:15px}
+table.t td.rho{font-weight:700;font-variant-numeric:tabular-nums;min-width:86px}
+table.t td.rho .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid rgba(0,0,0,.2)}
+table.t tr.anom td{background:#e7eefc}
+table.t tr.anom td.st::after{content:" ●";color:var(--cond)}
+table.t tr.poco td.st{background:#fde9d7}
+table.t td.st .utm{display:block;font-size:10px;font-weight:400;color:#66707a;line-height:1.2;margin-top:1px}
+table.t tr.sep td{background:#f7f6f2;font-size:11px;color:var(--muted);padding:3px}
+.tbwrap{overflow-x:auto;max-height:none}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;cursor:pointer;color:var(--brand2)}
+.pill.on{background:var(--brand2);color:#fff;border-color:var(--brand2)}
+.chart{width:100%;height:auto;display:block}
+.legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend .bar{flex:1;min-width:160px;height:12px;border-radius:6px;border:1px solid rgba(0,0,0,.15)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fbfaf7}
+.kpi b{display:block;font-size:18px;color:var(--brand)}
+.kpi span{font-size:12px;color:var(--muted)}
+.note{background:#e7eefc;border-left:4px solid var(--cond);padding:10px 12px;border-radius:6px;font-size:14px;margin:8px 0}
+.note.w{background:#fff4e5;border-color:var(--accent)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1f2933;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:.95}
+.sync{font-size:11px;opacity:.8}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal .box{background:#fff;border-radius:12px;padding:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto}
+.modal textarea{width:100%;min-height:200px;font-family:ui-monospace,Menlo,monospace;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:8px}
+.formula{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#f7f6f2;border-radius:8px;padding:8px 10px;color:#333;overflow-x:auto}
+canvas{max-width:100%}
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.foto{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fbfaf7;display:flex;flex-direction:column}
+.foto img{width:100%;height:190px;object-fit:cover;display:block;cursor:zoom-in;background:#ddd}
+.foto .fb{padding:8px;display:flex;flex-direction:column;gap:6px}
+.foto textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:6px;padding:6px;font-size:14px;resize:vertical}
+.foto .meta{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:6px}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+.lightbox img{max-width:100%;max-height:82vh;border-radius:6px}
+.lightbox p{color:#fff;font-size:14px;margin:10px 0 0;text-align:center}
+.lightbox button{position:absolute;top:10px;right:12px;font-size:26px;background:none;border:0;color:#fff;cursor:pointer}
+
+#sat{position:relative;height:480px;border-radius:10px;overflow:hidden;background:#2b2f33;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+#sat .tiles{position:absolute;inset:0}
+#sat .tiles img{position:absolute;width:256px;height:256px;max-width:none;pointer-events:none}
+#sat canvas.ov{position:absolute;inset:0;pointer-events:none}
+#sat .ctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:3}
+#sat .ctl button{width:38px;height:38px;border-radius:8px;border:0;background:#fff;font-size:20px;font-weight:700;color:#23404f;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:pointer}
+#sat .attr{position:absolute;right:0;bottom:0;background:rgba(255,255,255,.75);font-size:10px;padding:1px 5px;z-index:3}
+#sat .msg{position:absolute;left:10px;right:10px;bottom:52px;font-size:12px!important;background:rgba(255,255,255,.94);border-radius:8px;padding:8px 10px;font-size:13px;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+
+@media print{header,nav,.noprint{display:none!important} main{padding:0} .card{break-inside:avoid;border:0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 26 26"><rect x="1" y="1" width="24" height="24" rx="6" fill="#2f5d73"/><path d="M4 17 L8 11 L12 15 L16 7 L22 13" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="7" r="2.2" fill="#38bdf8"/></svg>
+      <div>GeoResist<br><small>Eletrorresistividade de campo</small></div>
+    </div>
+    <div class="grow"></div>
+    <span id="saveInd"></span>
+    <button class="btn sm" id="btnTela" style="background:#fff" title="Manter a tela do celular ligada">☀</button>
+    <select id="projSel" aria-label="Estudo"></select>
+    <button class="btn sm" id="btnNew" style="background:#fff">+ Novo</button>
+  </div>
+  <nav id="tabs">
+    <button data-tab="proj" class="on"><span class="ic">📋</span><span>Estudo</span></button>
+    <button data-tab="ce"><span class="ic">✏️</span><span>Ficha</span></button>
+    <button data-tab="mapa"><span class="ic">🗺️</span><span>Mapas</span></button>
+    <button data-tab="sev"><span class="ic">📉</span><span>SEV</span></button>
+    <button data-tab="fotos"><span class="ic">📷</span><span>Fotos</span></button>
+    <button data-tab="exp"><span class="ic">⬇️</span><span>Exportar</span></button>
+  </nav>
+</header>
+
+<main>
+<!-- ESTUDO -->
+<section id="tab-proj">
+  <div class="card">
+    <h2>Dados do estudo</h2>
+    <div class="grid">
+      <label class="f" style="grid-column:1/-1">Cliente / Obra<input data-p="nome"></label>
+      <label class="f">Local / Município<input data-p="local"></label>
+      <label class="f">Data<input type="date" data-p="data"></label>
+      <label class="f">UTM E (m)<input inputmode="decimal" data-p="utmE"></label>
+      <label class="f">UTM N (m)<input inputmode="decimal" data-p="utmN"></label>
+      <label class="f">Zona UTM<input data-p="zona" placeholder="24M"></label>
+      <label class="f">Responsável técnico<input data-p="resp"></label>
+      <label class="f">Equipamento<input data-p="equip" placeholder="Eletrorresistivímetro"></label>
+      <label class="f" style="grid-column:1/-1">Observações de campo<textarea data-p="obs"></textarea></label>
+    </div>
+  </div>
+  <div class="card" id="resumoCard">
+    <h2>Resumo da interpretação</h2>
+    <div id="resumo"></div>
+  </div>
+  <div class="card noprint">
+    <div class="row">
+      <button class="btn" id="btnDup">Novo estudo com este arranjo</button>
+      <button class="btn" id="btnExemplo">Carregar exemplo (Guaramiranga · Out/2026)</button>
+      <button class="btn dan" id="btnDel">Excluir este estudo</button>
+    </div>
+    <p class="hint" id="syncInfo">Os dados ficam salvos neste aparelho.</p>
+  </div>
+</section>
+
+<!-- CAMINHAMENTO -->
+<section id="tab-ce" class="hidden">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="pills" id="perfPills" style="margin:0"></div>
+      <button class="btn sm" id="btnAddPerf">+ Perfil</button>
+    </div>
+    <div class="status" id="ceStatus"></div>
+    <details class="cfg" id="pfDet"><summary>Dados do perfil e GPS</summary>
+      <div class="grid" style="margin-bottom:10px">
+        <label class="f" style="grid-column:1/-1">O aparelho mostra
+          <select data-p="modo"><option value="rho">Resistividade ρa (Ω·m) — digitar direto</option><option value="r">Resistência R = ΔV/I (Ω) — app multiplica por K</option><option value="dvi">ΔV (mV) e I (mA) — app calcula</option></select></label>
+        <label class="f">Nome do perfil<input data-pf="nome"></label>
+        <label class="f">Direção<input data-pf="dir" placeholder="NE–SW"></label>
+        <label class="f g-pontas">E05 · UTM E (m)<input inputmode="decimal" data-pf="eE"></label>
+        <label class="f g-pontas">E05 · UTM N (m)<input inputmode="decimal" data-pf="eN"></label>
+        <div class="gpsbtn"><button class="btn sm" data-gps="E">📍 Estou na E05 — pegar GPS</button></div>
+        <label class="f g-pontas">D05 · UTM E (m)<input inputmode="decimal" data-pf="dE"></label>
+        <label class="f g-pontas">D05 · UTM N (m)<input inputmode="decimal" data-pf="dN"></label>
+        <div class="gpsbtn"><button class="btn sm" data-gps="D">📍 Estou na D05 — pegar GPS</button></div>
+        <label class="f">Afastamento p/ perfil 1 (m)<input inputmode="decimal" data-pf="pos"></label>
+        <label class="f modo-dvi">Corrente I padrão (mA)<input inputmode="decimal" data-pf="ipad"></label>
+      </div>
+      <p class="hint" id="geoHint"></p>
+      <p style="margin:0 0 10px"><button class="btn sm dan" id="btnDelPerf">Excluir este perfil</button></p>
+    </details>
+    <div class="tbwrap"><table class="t" id="ceTable"></table></div>
+    <p class="hint"><span id="hintModo"></span> “Enter” pula para a próxima estaca. Azul (●) = zona condutiva · Amarelo (⚠) = valor muito fora do perfil, confira a leitura · Toque no nome da estaca para marcar o poço.</p>
+  </div>
+  <div class="card" id="ceChartCard">
+    <h2>Perfil de resistividade aparente</h2>
+    <div id="ceChartOne"></div>
+  </div>
+  <details class="card cfg" style="padding:0 14px"><summary>Arranjo do caminhamento</summary>
+    <div class="grid">
+      <label class="f">AB/2 (m) – eletrodos de corrente<input inputmode="decimal" data-ce="ab2"></label>
+      <label class="f">MN (m) – eletrodos de potencial<input inputmode="decimal" data-ce="mn"></label>
+      <label class="f">Espaçamento das estacas (m)<input inputmode="decimal" data-ce="step"></label>
+      <label class="f">Estaca máxima p/ cada lado (m)<input inputmode="decimal" data-ce="half"></label>
+      <label class="f">Limiar de anomalia (% abaixo da mediana)<input inputmode="decimal" data-ce="limiar"></label>
+      <label class="f">Prof. de investigação estimada<input id="profInv" disabled></label>
+    </div>
+    <p class="note" id="arrHint">Com leitura direta em ρa, o aparelho já aplica o K: o arranjo serve só como registro no relatório.</p>
+    <p class="hint">Arranjo gradiente (Schlumberger retangular): A e B fixos em ±AB/2, MN caminha entre eles.</p>
+    <div class="formula" style="margin-bottom:12px">K = 2π / (1/AM − 1/AN − 1/BM + 1/BN)<br>ρa = K · ΔV / I &nbsp;(ΔV em mV, I em mA → Ω·m)</div>
+  </details>
+</section>
+
+<!-- DESENHOS -->
+<section id="tab-mapa" class="hidden">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Mapa de satélite</h2>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px">Cores
+        <input type="range" id="satOp" min="0" max="100" value="60" style="width:110px"></label>
+    </div>
+    <p class="hint">Estacas na posição real (E05/D05 do GPS) sobre a imagem de satélite. Arraste para mover; use + e − ou dois dedos para o zoom. Toque numa estaca para ver o valor.</p>
+    <div id="sat"><div class="tiles"></div><canvas class="ov"></canvas>
+      <div class="ctl"><button id="zIn" aria-label="Aproximar">+</button><button id="zOut" aria-label="Afastar">−</button><button id="zFit" aria-label="Centralizar" style="font-size:15px">⌖</button></div>
+      <div class="msg hidden" id="satMsg"></div>
+      <div class="attr">Imagens © Esri, Maxar, Earthstar Geographics</div></div>
+    <div class="row" style="margin-top:8px" id="satLinks"></div>
+    <div id="satInfo" class="hint" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Mapa de resistividade aparente</h2>
+      <div class="row">
+        <label class="f" style="flex-direction:row;align-items:center;gap:6px">Vista
+          <select id="vista"><option value="utm">Mapa UTM (norte p/ cima)</option><option value="esq">Esquema dos perfis</option></select></label>
+        <label class="f" style="flex-direction:row;align-items:center;gap:6px">Escala
+          <select id="escala"><option value="auto">Automática</option><option value="fixa">Fixa</option></select></label>
+        <label class="f fixa" style="flex-direction:row;align-items:center;gap:4px">mín <input id="vmin" inputmode="decimal" style="width:64px"></label>
+        <label class="f fixa" style="flex-direction:row;align-items:center;gap:4px">máx <input id="vmax" inputmode="decimal" style="width:64px"></label>
+      </div>
+    </div>
+    <p class="hint" id="vistaHint">Interpolação entre as estacas e entre os perfis. <b style="color:#1d4ed8">Azul = condutivo (baixa ρa, possível fratura com água)</b> · <b style="color:#dc2626">Vermelho = resistivo (rocha sã)</b>.</p>
+    <canvas id="mapa" width="900" height="420"></canvas>
+    <div id="mapLegend"></div>
+  </div>
+  <div class="card">
+    <h2>Perfis</h2>
+    <div id="ceChartsAll"></div>
+  </div>
+</section>
+
+<!-- SEV -->
+<section id="tab-sev" class="hidden">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Sondagem Elétrica Vertical (Schlumberger)</h2>
+      <div class="row">
+        <button class="btn sm" id="btnSevAdd">+ Linha</button>
+        <button class="btn sm" id="btnSevPadrao">Tabela padrão AB/2</button>
+      </div>
+    </div>
+    <div class="grid" style="margin:10px 0">
+      <label class="f" style="grid-column:1/-1">O aparelho mostra
+        <select data-p="modo"><option value="rho">Resistividade ρa (Ω·m) — digitar direto</option><option value="r">Resistência R = ΔV/I (Ω) — app multiplica por K</option><option value="dvi">ΔV (mV) e I (mA) — app calcula</option></select></label>
+      <label class="f">Nome da SEV<input data-sev="nome"></label>
+      <label class="f">Local (estaca / perfil)<input data-sev="local"></label>
+      <label class="f modo-dvi">Corrente I padrão (mA)<input inputmode="decimal" data-sev="ipad"></label>
+    </div>
+    <div class="formula">K = π · ( (AB/2)² − (MN/2)² ) / MN &nbsp;&nbsp; ρa = K · ΔV / I</div>
+    <div class="tbwrap" style="margin-top:10px"><table class="t" id="sevTable"></table></div>
+  </div>
+  <div class="card">
+    <h2>Curva de campo e coluna de cores</h2>
+    <div id="sevChart"></div>
+    <p class="hint">A coluna à direita mostra ρa por profundidade aproximada (≈ AB/2, convenção simples). É resistividade <i>aparente</i> — serve para orientar, não substitui a inversão em camadas.</p>
+  </div>
+</section>
+
+<!-- FOTOS -->
+<section id="tab-fotos" class="hidden">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Registro fotográfico</h2>
+      <div class="row">
+        <label class="btn pri" style="cursor:pointer">📷 Tirar foto<input type="file" accept="image/*" capture="environment" id="fotoCam" class="hidden"></label>
+        <label class="btn" style="cursor:pointer">🖼 Da galeria<input type="file" accept="image/*" multiple id="fotoGal" class="hidden"></label>
+      </div>
+    </div>
+    <p class="hint">Fotos da execução do trabalho (equipamento, linhas, piquete do poço…). Escreva a legenda embaixo de cada uma. As fotos entram na imagem exportada e no backup do estudo.</p>
+    <p class="hint" id="fotoInfo"></p>
+    <div class="fotos" id="fotoGrid"></div>
+  </div>
+</section>
+
+<!-- EXPORTAR -->
+<section id="tab-exp" class="hidden">
+  <div class="card">
+    <h2>Relatório técnico</h2>
+    <p class="hint">Gera o relatório no mesmo modelo do relatório de Guaramiranga (capa, sumário, apresentação, aspectos fisiográficos, recursos hídricos, serviços, conclusões, ficha de campo com gráficos e registro fotográfico) em Word, para revisar e assinar.</p>
+    <button class="btn pri" id="btnRel">📄 Gerar relatório (Word .docx)</button>
+    <details class="cfg" style="margin-top:12px"><summary>Textos e dados do relatório</summary><div id="relForm"></div></details>
+  </div>
+  <div class="card">
+    <h2>Exportar</h2>
+    <div class="row">
+      <button class="btn pri" id="btnPng">Imagem dos desenhos (PNG)</button>
+      <button class="btn pri" id="btnGmaps">Pontos p/ Google Maps (CSV)</button>
+      <button class="btn" id="btnCsv">Ficha de campo (CSV/Excel)</button>
+      <button class="btn" id="btnJson">Backup do estudo (JSON)</button>
+    </div>
+    <p class="hint">“Pontos p/ Google Maps”: importe em <b>google.com/mymaps</b> → Criar mapa → Importar. Use Latitude/Longitude como posição e “Nome” como título; agrupe pela coluna “Classe” para colorir.</p>
+    <p class="hint" id="expHint">O CSV abre direto no Excel. O backup JSON pode ser importado em outro aparelho.</p>
+    <h3>Importar backup</h3>
+    <div class="row">
+      <input type="file" id="fileImp" accept=".json,application/json">
+      <button class="btn" id="btnColar">Colar backup</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Pré-visualização da imagem</h2>
+    <canvas id="pngPrev" style="width:100%;border:1px solid var(--line);border-radius:8px"></canvas>
+  </div>
+</section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="modal hidden" id="modal"><div class="box"><h3 id="mTitle" style="margin-top:0"></h3><p class="hint" id="mHint"></p><textarea id="mText"></textarea><div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn" id="mCancel">Fechar</button><button class="btn pri" id="mOk">OK</button></div></div></div>
+
+<script>
+"use strict";
+/* ===================== utilidades ===================== */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const num = v => { if (v === null || v === undefined) return NaN; const s = String(v).trim().replace(/\s/g,'').replace(',', '.'); if (s === '') return NaN; return Number(s); };
+const fmt = (n, d=2) => isFinite(n) ? n.toLocaleString('pt-BR',{minimumFractionDigits:d, maximumFractionDigits:d}) : '—';
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),2600); }
+const median = a => { const b=[...a].sort((x,y)=>x-y); const n=b.length; if(!n) return NaN; return n%2? b[(n-1)/2] : (b[n/2-1]+b[n/2])/2; };
+
+/* ===================== escala de cores ===================== */
+/* azul (condutivo) -> vermelho (resistivo) */
+const STOPS = [
+  [0.00,[ 30, 58,138]],
+  [0.18,[ 37, 99,235]],
+  [0.36,[ 56,189,248]],
+  [0.50,[134,239,172]],
+  [0.64,[253,224, 71]],
+  [0.82,[249,115, 22]],
+  [1.00,[185, 28, 28]]
+];
+function rampRGB(t){
+  t = Math.max(0, Math.min(1, t));
+  for (let i=1;i<STOPS.length;i++){
+    if (t <= STOPS[i][0]){
+      const [t0,c0]=STOPS[i-1], [t1,c1]=STOPS[i]; const f=(t-t0)/(t1-t0);
+      return [0,1,2].map(j=>Math.round(c0[j]+(c1[j]-c0[j])*f));
+    }
+  }
+  return STOPS[STOPS.length-1][1];
+}
+const rgb = a => `rgb(${a[0]},${a[1]},${a[2]})`;
+function makeScale(vmin, vmax){
+  const lo=Math.log10(Math.max(vmin,1e-6)), hi=Math.log10(Math.max(vmax,vmin*1.0001,1e-6));
+  const span = (hi-lo) || 1;
+  const t = v => (Math.log10(Math.max(v,1e-6))-lo)/span;
+  return { vmin, vmax, t, rgb: v => rampRGB(t(v)), css: v => rgb(rampRGB(t(v))) };
+}
+function legendHTML(sc, title='ρa (Ω·m)'){
+  const css = STOPS.map(s=>`${rgb(s[1])} ${s[0]*100}%`).join(',');
+  const mid = Math.sqrt(sc.vmin*sc.vmax);
+  return `<div class="legend"><span>${title}</span><b style="color:#1e3a8a">${fmt(sc.vmin,1)}</b><div class="bar" style="background:linear-gradient(90deg,${css})"></div><b style="color:#b91c1c">${fmt(sc.vmax,1)}</b></div>
+  <div class="legend" style="justify-content:space-between;margin-top:2px"><span>◀ condutivo (fraturas / água)</span><span>${fmt(mid,1)}</span><span>resistivo (rocha sã) ▶</span></div>`;
+}
+
+/* ===================== física ===================== */
+/* arranjo gradiente: A=-s, B=+s, M=x-b, N=x+b  (b = MN/2) */
+function kGradiente(x, ab2, mn){
+  const s=ab2, b=mn/2;
+  const AM=x-b+s, AN=x+b+s, BM=s-(x-b), BN=s-(x+b);
+  if (!(s>0 && b>0) || AM<=0 || BN<=0) return NaN;
+  const g = 1/AM - 1/AN - 1/BM + 1/BN;
+  return 2*Math.PI/g;
+}
+function kSchlumberger(ab2, mn2){
+  if (!(ab2>0 && mn2>0) || mn2>=ab2) return NaN;
+  return Math.PI*(ab2*ab2 - mn2*mn2)/(2*mn2);
+}
+function estacas(ce){
+  const step=num(ce.step), half=num(ce.half);
+  if (!(step>0 && half>=0)) return [0];
+  const out=[]; const n=Math.round(half/step);
+  for (let i=-n;i<=n;i++) out.push(+(i*step).toFixed(6));
+  return out;
+}
+const rotulo = x => x===0 ? 'Centro' : (x<0 ? 'E'+fmtL(-x) : 'D'+fmtL(x));
+const rotuloCurto = x => x===0 ? 'C' : (x<0 ? 'E'+fmtL(-x) : 'D'+fmtL(x));
+function fmtL(v){ return Number.isInteger(v) ? String(v).padStart(2,'0') : String(v).replace('.',','); }
+
+/* ===================== georreferência ===================== */
+const RUMOS={N:0,NNE:22.5,NE:45,ENE:67.5,E:90,L:90,ESE:112.5,SE:135,SSE:157.5,S:180,SSW:202.5,SSO:202.5,SW:225,SO:225,WSW:247.5,W:270,O:270,WNW:292.5,NW:315,NO:315,NNW:337.5};
+function azPerfil(pf){
+  const a=num(pf.az); if (isFinite(a)) return ((a%360)+360)%360;
+  const t=String(pf.dir||'').toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+  if (t.length>=2 && RUMOS[t[1]]!==undefined) return RUMOS[t[1]];
+  if (t.length===1 && RUMOS[t[0]]!==undefined) return RUMOS[t[0]];
+  return NaN;
+}
+/* devolve {E0,N0,az,derivado} para cada perfil (ou null) */
+function georef(){
+  const p=P(), ce=p.ce; const out={};
+  let ref=null;
+  const xs=estacas(ce);
+  ce.perfis.forEach((pf,i)=>{
+    const [xa,xb]=pontosPerfil(pf,xs);
+    const ee=num(pf.eE), en=num(pf.eN), de=num(pf.dE), dn=num(pf.dN);
+    if ([ee,en,de,dn].every(isFinite) && (de!==ee||dn!==en) && xb!==xa){
+      const len=Math.hypot(de-ee,dn-en); const sg=Math.sign(xb-xa); const az=((Math.atan2(sg*(de-ee),sg*(dn-en))*180/Math.PI)+360)%360; const k=len/Math.abs(xb-xa);
+      // estaca x -> fração entre as pontas
+      // a trena manda na distância; o GPS dá a direção e a posição (centro do par medido)
+      const ar=az*Math.PI/180, xm=(xa+xb)/2; const E0=(ee+de)/2 - xm*Math.sin(ar), N0=(en+dn)/2 - xm*Math.cos(ar);
+      out[pf.id]={E0,N0,az,k:1,len,nominal:Math.abs(xb-xa),der:'pontas'}; if(!ref) ref={pf,E0,N0,az,pos:num(pf.pos)||0}; return;
+    }
+    let E0=num(pf.e0), N0=num(pf.n0), der=false;
+    if (!(isFinite(E0)&&isFinite(N0)) && i===0){ E0=num(p.utmE); N0=num(p.utmN); der='estudo'; }
+    let az=azPerfil(pf);
+    if (isFinite(E0)&&isFinite(N0)){ if(!isFinite(az)) az = ref? ref.az : 0; out[pf.id]={E0,N0,az,der}; if(!ref) ref={pf,E0,N0,az,pos:num(pf.pos)||0}; }
+  });
+  if (ref) ce.perfis.forEach(pf=>{
+    if (out[pf.id]) return;
+    let az=azPerfil(pf); if(!isFinite(az)) az=ref.az;
+    const d=(num(pf.pos)||0)-ref.pos; const pr=(ref.az+90)*Math.PI/180;
+    out[pf.id]={E0:ref.E0+d*Math.sin(pr), N0:ref.N0+d*Math.cos(pr), az, der:'afast'};
+  });
+  return out;
+}
+function pontosPerfil(pf, xs){
+  return [-5, 5]; // GPS sempre nas estacas E05 e D05
+}
+function utmEstaca(g, x){ const a=g.az*Math.PI/180, k=g.k||1; return {E:g.E0+x*k*Math.sin(a), N:g.N0+x*k*Math.cos(a)}; }
+const fUTM = v => isFinite(v)? Math.round(v).toString() : '—';
+
+/* modo de leitura do aparelho: 'rho' = ρa direto, 'r' = R (Ω), 'dvi' = ΔV e I */
+const modo = () => (P() && P().modo) || 'dvi';
+function rhoDe(m, K, r, dv, I, R){
+  if (m==='rho'){ const v=num(r.rho); return v>0 ? v : NaN; }
+  if (m==='r') return (isFinite(K)&&isFinite(R)) ? K*R : NaN;
+  return (isFinite(K)&&isFinite(dv)&&isFinite(I)&&I>0) ? K*dv/I : NaN;
+}
+const MODOS = { rho:'Resistividade ρa (Ω·m)', r:'Resistência R = ΔV/I (Ω)', dvi:'ΔV (mV) e I (mA)' };
+/* resultado de um perfil */
+function calcPerfil(ce, pf){
+  const ab2=num(ce.ab2), mn=num(ce.mn), ipad=num(pf.ipad);
+  const rows = estacas(ce).map(x=>{
+    const r = pf.lei[x] || {};
+    const K = kGradiente(x, ab2, mn);
+    const dv = num(r.dv), R = num(r.r); let I = num(r.i); const iAuto = !isFinite(I); if (iAuto) I = ipad;
+    const rho = rhoDe(modo(), K, r, dv, I, R);
+    return {x, K, dv, I, iAuto, R, rho};
+  });
+  const vals = rows.filter(r=>isFinite(r.rho)).map(r=>r.rho);
+  const med = median(vals);
+  const lim = num(ce.limiar); const corte = isFinite(lim) ? med*(1-lim/100) : NaN;
+  let min=null; rows.forEach(r=>{ r.anom = isFinite(r.rho) && isFinite(corte) && r.rho<=corte; if (isFinite(r.rho) && (!min || r.rho<min.rho)) min=r;
+    r.susp = isFinite(r.rho) && vals.length>=4 && isFinite(med) && (r.rho>med*5 || r.rho<med/5); });
+  return {rows, med, corte, min, n:vals.length, max: vals.length?Math.max(...vals):NaN};
+}
+
+/* ===================== estado ===================== */
+const LS_KEY='georesist.v1';
+let S = { cur:null, projects:{} };
+function novoEstudo(nome){
+  const id=uid();
+  return { id, updatedAt: Date.now(), modo:'rho', nome: nome||'Novo estudo', local:'', data:new Date().toISOString().slice(0,10), utmE:'', utmN:'', zona:'24M', resp:'', equip:'Eletrorresistivímetro', obs:'',
+    ce:{ ab2:'70', mn:'10', step:'5', half:'30', limiar:'25', escala:'auto', vmin:'', vmax:'', curPerf:null, poco:null,
+      perfis:[ {id:uid(), nome:'Perfil 1', dir:'NE–SW', pos:'0', ipad:'', geo:'pontas', lei:{}} ] },
+    sev:{ nome:'SEV 1', local:'', ipad:'', rows:[] } };
+}
+function exemplo(){
+  const p = novoEstudo('Exemplo – Guaramiranga/CE');
+  Object.assign(p,{ local:'Guaramiranga / CE', data:'2026-10-09', utmE:'507588', utmN:'9528625', zona:'24M', resp:'Lauriston Ferreira Gomes Neto – CREA/CE 11.155-D',
+    obs:'Exemplo do relatório: anomalia condutiva na estaca D10 do Perfil 1, associada a fissuras transversais no embasamento cristalino. Poço recomendado de 80 a 100 m.' });
+  const xs=[-30,-25,-20,-15,-10,-5,0,5,10,15,20,25,30];
+  const p1dv=[5.5,4.5,4.0,4.7,4.9,6.8,3.6,2.5,2.3,4.5,6.3,8.8,7.6];
+  const p2dv=[8.5,6.5,5.2,5.9,7.9,6.5,4.6,4.5,4.3,6.5,5.3,7.8,6.6];
+  const p1r=[26.86,26.28,27.05,35.53,40.07,58.26,31.32,21.42,18.81,34.02,42.61,51.41,36.90];
+  const p2r=[42.73,39.31,36.41,46.18,66.88,57.66,41.44,39.92,36.40,50.87,37.11,47.17,33.18];
+  const c = v => String(v).replace('.',',');
+  const l1={}, l2={}; xs.forEach((x,i)=>{ l1[x]={dv:c(p1dv[i]), i:'', rho:c(p1r[i]), r:''}; l2[x]={dv:c(p2dv[i]), i:'', rho:c(p2r[i]), r:''}; });
+  l1[-30].i='175';
+  p.ce.perfis=[ {id:uid(),nome:'Perfil 1',dir:'NE–SW',pos:'0',ipad:'176',eE:'507586',eN:'9528621',dE:'507590',dN:'9528632',lei:l1}, {id:uid(),nome:'Perfil 2',dir:'NE–SW',pos:'20',ipad:'170',lei:l2} ];
+  p.ce.poco={perfil:p.ce.perfis[0].id, x:10};
+  p.ce.curPerf=p.ce.perfis[0].id;
+  return p;
+}
+function P(){ return S.projects[S.cur]; }
+function loadLocal(){
+  try { const raw=localStorage.getItem(LS_KEY); if (raw){ const o=JSON.parse(raw); if (o && o.projects) S=o; } } catch(e){}
+  if (!S.projects || !Object.keys(S.projects).length){ const e=exemplo(); S={cur:e.id, projects:{[e.id]:e}}; }
+  if (!S.projects[S.cur]) S.cur=Object.keys(S.projects)[0];
+}
+let saveT=null;
+function touch(){ const p=P(); if(p) p.updatedAt=Date.now(); clearTimeout(saveT); saveT=setTimeout(()=>{ saveLocal(); cloudSave(p); }, 900); }
+function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); if(typeof marcaSalvo==='function') marcaSalvo(); }catch(e){} }
+
+/* ===================== nuvem (opcional) ===================== */
+let DB=null, UID=null, DL=null;
+const cloudQ = {}; // por projeto: fila serializada
+async function cloudInit(){
+  if (!(window.claude && typeof window.claude.use==='function')) return;
+  try{ DL = await window.claude.use('downloads'); }catch(e){ DL=null; }
+  try{
+    const db = await window.claude.use('db'); const user = await window.claude.use('user');
+    if (!db || !user) return; const id = await user.id(); if (!id) return;
+    DB=db; UID=id;
+    const timer=setTimeout(()=>setSync('Sem conexão com a nuvem agora — dados salvos neste aparelho.'),10000);
+    const snap = await DB.collection('data/users/'+UID).get();
+    clearTimeout(timer);
+    let changed=false;
+    snap.docs.forEach(d=>{ const o=d.data(); if(!o||!o.json) return; try{ const pr=JSON.parse(o.json); const loc=S.projects[pr.id]; if(!loc || (pr.updatedAt||0)>(loc.updatedAt||0)){ S.projects[pr.id]=pr; changed=true; } }catch(e){} });
+    // envia os locais mais novos
+    for (const pr of Object.values(S.projects)){ const remote=snap.docs.find(d=>d.id===pr.id); const ru = remote && remote.data() ? remote.data().updatedAt||0 : -1; if ((pr.updatedAt||0)>ru) cloudSave(pr); }
+    if (changed){ saveLocal(); renderAll(); }
+    syncFotos(snap.docs);
+    setSync('Sincronizado com sua conta Claude — abre em qualquer aparelho.');
+  }catch(e){ setSync('Dados salvos neste aparelho.'); }
+}
+function setSync(t){ const el=$('#syncInfo'); if (el) el.textContent=t; }
+function cloudSave(pr){
+  if (!DB || !UID || !pr) return;
+  const prev = cloudQ[pr.id] || Promise.resolve();
+  cloudQ[pr.id] = prev.then(()=> DB.collection('data/users/'+UID).doc(pr.id).set({ updatedAt: pr.updatedAt, nome: pr.nome, json: JSON.stringify(pr) }))
+    .catch(e=>{ if (e && e.code==='quota_exceeded') toast('Nuvem cheia: exporte e exclua estudos antigos.'); });
+}
+function cloudDelete(id){ if (!DB||!UID) return; DB.collection('data/users/'+UID).doc(id).delete().catch(()=>{}); }
+
+/* ===================== UI: projeto ===================== */
+function renderProjSel(){
+  const sel=$('#projSel');
+  const arr=Object.values(S.projects).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  sel.innerHTML=arr.map(p=>`<option value="${p.id}" ${p.id===S.cur?'selected':''}>${esc(p.nome||'(sem nome)')}${p.data?' · '+p.data.split('-').reverse().join('/'):''}</option>`).join('');
+}
+function bindFields(){
+  const p=P();
+  $$('[data-p]').forEach(el=>{ el.value=p[el.dataset.p]??''; });
+  $$('[data-ce]').forEach(el=>{ el.value=p.ce[el.dataset.ce]??''; });
+  $$('[data-sev]').forEach(el=>{ el.value=p.sev[el.dataset.sev]??''; });
+  $('#vista').value=p.ce.vista||'utm'; $('#escala').value=p.ce.escala||'auto'; $('#vmin').value=p.ce.vmin||''; $('#vmax').value=p.ce.vmax||'';
+  $$('.fixa').forEach(e=>e.classList.toggle('hidden', p.ce.escala!=='fixa'));
+  updProf(); updModoUI();
+}
+function updModoUI(){
+  const m=modo(); $$('[data-p="modo"]').forEach(x=>x.value=m);
+  $$('.modo-dvi').forEach(x=>x.classList.toggle('hidden', m!=='dvi'));
+  const h=$('#hintModo'); if (h) h.textContent = m==='rho' ? 'Digite a resistividade (Ω·m) que o aparelho mostra em cada estaca.' : m==='r' ? 'Digite a resistência R (Ω) do aparelho; o app multiplica pelo K de cada estaca.' : 'Digite ΔV em cada estaca; a corrente I usa o valor padrão quando a célula ficar vazia.';
+  const ar=$('#arrHint'); if (ar) ar.classList.toggle('hidden', m!=='rho');
+}
+function updProf(){ const ab2=num(P().ce.ab2); $('#profInv').value = isFinite(ab2)? `≈ ${fmt(ab2*2/3,0)} m (≈ AB/3)` : ''; }
+
+document.addEventListener('input', e=>{
+  const el=e.target; const p=P(); if(!p) return;
+  if (el.dataset.p==='modo'){ p.modo=el.value; $$('[data-p="modo"]').forEach(x=>x.value=p.modo); updModoUI(); renderCETable(); renderSevTable(); renderCharts(); touch(); return; }
+  if (el.dataset.p){ p[el.dataset.p]=el.value; if(el.dataset.p==='nome'||el.dataset.p==='data') renderProjSel(); if(['utmE','utmN'].includes(el.dataset.p)) refreshCETable(); renderResumo(); touch(); }
+  else if (el.dataset.ce){ p.ce[el.dataset.ce]=el.value; updProf(); if (['step','half'].includes(el.dataset.ce)){ renderCETable(); updGeoUI(); } else refreshCETable(); renderCharts(); touch(); }
+  else if (el.dataset.pf==='rumo'){ const pf=curPerf(); pf.rumo=el.value; if (el.value!=='c') pf.az = el.value; updGeoUI(); refreshCETable(); renderCharts(); touch(); }
+  else if (el.dataset.pf){ const pf=curPerf(); pf[el.dataset.pf]=el.value; if(el.dataset.pf==='nome') renderPills(); if(['az','dir','eE','eN','dE','dN','e0','n0','pos','pa','pb'].includes(el.dataset.pf)) updGeoUI(); refreshCETable(); renderCharts(); touch(); }
+  else if (el.dataset.sev){ p.sev[el.dataset.sev]=el.value; refreshSev(); touch(); }
+  else if (el.dataset.lx!==undefined){ const pf=curPerf(); const x=el.dataset.lx; pf.lei[x]=pf.lei[x]||{}; pf.lei[x][el.dataset.k]=el.value; refreshCETable(); renderCharts(); touch(); }
+  else if (el.dataset.sr!==undefined){ const r=p.sev.rows[+el.dataset.sr]; r[el.dataset.k]=el.value; refreshSev(); touch(); }
+  else if (el.id==='vmin'||el.id==='vmax'){ p.ce[el.id]=el.value; renderCharts(); touch(); }
+});
+$('#vista').addEventListener('change', e=>{ P().ce.vista=e.target.value; renderCharts(); touch(); });
+$('#escala').addEventListener('change', e=>{ P().ce.escala=e.target.value; $$('.fixa').forEach(x=>x.classList.toggle('hidden', e.target.value!=='fixa')); renderCharts(); touch(); });
+$('#projSel').addEventListener('change', e=>{ S.cur=e.target.value; saveLocal(); renderAll(); });
+$('#btnNew').addEventListener('click', ()=>{ const p=novoEstudo('Novo estudo'); S.projects[p.id]=p; S.cur=p.id; p.ce.curPerf=p.ce.perfis[0].id; touch(); renderAll(); showTab('proj'); setTimeout(()=>{ const i=$('[data-p="nome"]'); i.focus(); i.select(); },50); });
+$('#btnExemplo').addEventListener('click', ()=>{ const p=exemplo(); S.projects[p.id]=p; S.cur=p.id; touch(); renderAll(); toast('Exemplo carregado'); });
+$('#btnDel').addEventListener('click', ()=>{
+  confirmBox('Excluir estudo', `Excluir “${P().nome}”? Isso não pode ser desfeito (exporte um backup antes, se precisar).`, ()=>{
+    const id=S.cur; delete S.projects[id]; cloudDelete(id); fotosDe(id).then(fs=>fs.forEach(f=>{ fotoDel(f.id); cloudFotoDel(f.id); }));
+    if (!Object.keys(S.projects).length){ const n=novoEstudo(); S.projects[n.id]=n; }
+    S.cur=Object.keys(S.projects)[0]; saveLocal(); renderAll(); toast('Estudo excluído');
+  });
+});
+
+/* ===================== abas ===================== */
+function showTab(t){
+  $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
+  ['proj','ce','mapa','sev','fotos','exp'].forEach(x=>$('#tab-'+x).classList.toggle('hidden', x!==t));
+  if (t==='mapa'||t==='ce') renderCharts();
+  if (t==='exp'){ buildPng(false); renderRelForm(); }
+  if (t==='sev') refreshSev();
+  if (t==='fotos') renderFotos();
+  try{ localStorage.setItem('georesist.tab', t); }catch(e){}
+  window.scrollTo(0,0);
+}
+$('#tabs').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) showTab(b.dataset.tab); });
+
+/* ===================== caminhamento ===================== */
+function curPerf(){ const ce=P().ce; let pf=ce.perfis.find(x=>x.id===ce.curPerf); if(!pf){ pf=ce.perfis[0]; ce.curPerf=pf&&pf.id; } return pf; }
+function renderPills(){
+  const ce=P().ce;
+  $('#perfPills').innerHTML = ce.perfis.map(pf=>`<button class="pill ${pf.id===ce.curPerf?'on':''}" data-pid="${pf.id}">${esc(pf.nome||'Perfil')}</button>`).join('');
+}
+$('#perfPills').addEventListener('click', e=>{ const b=e.target.closest('[data-pid]'); if(!b) return; P().ce.curPerf=b.dataset.pid; delete $('#pfDet').dataset.auto; $('#pfDet').open=false; renderPills(); renderPerfFields(); renderCETable(); renderCharts(); });
+$('#btnAddPerf').addEventListener('click', ()=>{
+  const ce=P().ce; const n=ce.perfis.length+1; const last=ce.perfis[ce.perfis.length-1];
+  const pos = last ? (num(last.pos)||0)+20 : 0;
+  const pf={id:uid(),nome:'Perfil '+n,dir:last?last.dir:'',pos:String(pos),ipad:last?last.ipad:'',geo:'pontas',lei:{}};
+  ce.perfis.push(pf); ce.curPerf=pf.id; touch(); renderPills(); renderPerfFields(); renderCETable(); renderCharts();
+  setTimeout(()=>{ const i=$('#ceTable input'); if(i) i.focus(); },50);
+});
+$('#btnDelPerf').addEventListener('click', ()=>{
+  const ce=P().ce; if (ce.perfis.length<=1){ toast('O estudo precisa de pelo menos 1 perfil'); return; }
+  const pf=curPerf();
+  confirmBox('Excluir perfil', `Excluir “${pf.nome}” e todas as leituras dele?`, ()=>{
+    ce.perfis=ce.perfis.filter(x=>x.id!==pf.id); if (ce.poco&&ce.poco.perfil===pf.id) ce.poco=null; ce.curPerf=ce.perfis[0].id; touch(); renderPills(); renderPerfFields(); renderCETable(); renderCharts();
+  });
+});
+function renderPerfFields(){ const pf=curPerf(); $$('[data-pf]').forEach(el=>{ el.value=pf?(pf[el.dataset.pf]??''):''; }); updGeoUI(); }
+function updGeoUI(){
+  const pf=curPerf(); if(!pf) return; const p=P(); const idx=p.ce.perfis.indexOf(pf);
+  const g=georef()[pf.id]; let t='';
+  if (g && g.der==='pontas'){ const dif=g.len-g.nominal;
+    t=`Estaca 0 em ${fUTM(g.E0)}E / ${fUTM(g.N0)}N · lado D a ${fmt(g.az,0)}° · distância E05–D05 pelo GPS: ${fmt(g.len,1)} m (trena 10 m).`+(Math.abs(dif)>5?` ⚠ Diferença de ${fmt(Math.abs(dif),1)} m — confira as coordenadas.`:''); }
+  else t='Digite a UTM das estacas E05 e D05 (GPS). O app calcula a direção do perfil e a coordenada de todas as estacas.'+(g?' Enquanto isso, o perfil aparece em posição provisória no mapa.':'');
+  const pl=$('[data-pf="pos"]').closest('label'); pl.classList.toggle('hidden', idx===0 || (g && g.der==='pontas'));
+  $('#geoHint').textContent=t;
+}
+function renderCETable(){
+  const p=P(), ce=p.ce, pf=curPerf(); if(!pf) return; const m=modo();
+  const res=calcPerfil(ce,pf);
+  const cols = m==='rho' ? ['Estaca','ρa (Ω·m)','Cor'] : m==='r' ? ['Estaca','K','R (Ω)','ρa (Ω·m)'] : ['Estaca','K','ΔV (mV)','I (mA)','ρa (Ω·m)'];
+  const inp = (x,k,val,ph='') => `<td><input inputmode="decimal" enterkeyhint="next" data-lx="${x}" data-k="${k}" value="${esc(val||'')}" placeholder="${esc(ph)}"></td>`;
+  let h=`<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+  res.rows.forEach((r,i)=>{
+    const le=pf.lei[r.x]||{};
+    if (r.x===0 && i>0) h+=`<tr class="sep"><td colspan="${cols.length}"></td></tr>`;
+    h+=`<tr data-x="${r.x}"><td class="st" data-poco="${r.x}" title="Toque para marcar o poço">${rotulo(r.x)}<span class="utm"></span></td>`;
+    if (m==='rho') h+= inp(r.x,'rho',le.rho) + `<td class="rho cor"></td>`;
+    else if (m==='r') h+= `<td class="k"></td>` + inp(r.x,'r',le.r) + `<td class="rho"></td>`;
+    else h+= `<td class="k"></td>` + inp(r.x,'dv',le.dv) + inp(r.x,'i',le.i,pf.ipad||'') + `<td class="rho"></td>`;
+    h+='</tr>';
+    if (r.x===0) h+=`<tr class="sep"><td colspan="${cols.length}"></td></tr>`;
+  });
+  h+='</tbody>';
+  $('#ceTable').innerHTML=h;
+  refreshCETable();
+}
+function curScale(){
+  const ce=P().ce;
+  if (ce.escala==='fixa'){ const a=num(ce.vmin), b=num(ce.vmax); if (a>0&&b>a) return makeScale(a,b); }
+  const all=[]; ce.perfis.forEach(pf=>calcPerfil(ce,pf).rows.forEach(r=>{ if(isFinite(r.rho)&&r.rho>0) all.push(r.rho); }));
+  if (!all.length) return makeScale(10,100);
+  let a=Math.min(...all), b=Math.max(...all); if (b<=a) b=a*1.5;
+  return makeScale(a,b);
+}
+function refreshCETable(){
+  const ce=P().ce, pf=curPerf(); if(!pf) return;
+  const res=calcPerfil(ce,pf); const sc=curScale(); const G=georef()[pf.id];
+  res.rows.forEach(r=>{
+    const tr=$(`#ceTable tr[data-x="${r.x}"]`); if(!tr) return;
+    const kc=tr.querySelector('td.k'); if (kc) kc.textContent=fmt(r.K,2);
+    const uc=tr.querySelector('.utm'); if (uc){ if (G){ const u=utmEstaca(G,r.x); uc.textContent=fUTM(u.E)+' / '+fUTM(u.N); } else uc.textContent=''; }
+    const rc=tr.querySelector('td.rho');
+    if (rc) rc.innerHTML = isFinite(r.rho) ? (rc.classList.contains('cor') ? `<span class="sw" style="background:${sc.css(r.rho)};width:44px"></span>` : `<span class="sw" style="background:${sc.css(r.rho)}"></span>${fmt(r.rho,2)}`) : '<span style="color:#bbb">—</span>';
+    tr.classList.toggle('anom', !!r.anom); tr.classList.toggle('susp', !!r.susp);
+    tr.classList.toggle('poco', !!(ce.poco && ce.poco.perfil===pf.id && +ce.poco.x===r.x));
+    const iIn=tr.querySelector('input[data-k="i"]'); if (iIn) iIn.placeholder = pf.ipad||'';
+  });
+  renderResumo(); renderStatus();
+}
+$('#ceTable').addEventListener('keydown', e=>{
+  if (e.key!=='Enter') return; const el=e.target; if(!el.dataset || el.dataset.lx===undefined) return;
+  e.preventDefault(); const ins=$$(`#ceTable input[data-k="${el.dataset.k}"]`); const i=ins.indexOf(el);
+  if (ins[i+1]) { ins[i+1].focus(); ins[i+1].select(); } else { el.blur(); $('#ceChartCard').scrollIntoView({behavior:'smooth'}); }
+});
+$('#ceTable').addEventListener('click', e=>{
+  const td=e.target.closest('[data-poco]'); if(!td) return;
+  const ce=P().ce, pf=curPerf(); const x=+td.dataset.poco;
+  if (ce.poco && ce.poco.perfil===pf.id && +ce.poco.x===x) { ce.poco=null; toast('Marcação do poço removida'); }
+  else { ce.poco={perfil:pf.id, x}; toast(`Poço marcado em ${pf.nome} · ${rotulo(x)}`); }
+  touch(); refreshCETable(); renderCharts();
+});
+
+/* ===================== gráficos (SVG) ===================== */
+let GID=0;
+function perfilSVG(ce, pf, sc, opts={}){
+  const res=calcPerfil(ce,pf); const W=760, H=opts.h||300, ml=58, mr=16, mt=34, mb=64;
+  const xs=res.rows.map(r=>r.x); const x0=Math.min(...xs), x1=Math.max(...xs); const xr=(x1-x0)||1;
+  const vals=res.rows.filter(r=>isFinite(r.rho)).map(r=>r.rho);
+  let ymax = vals.length? Math.max(...vals)*1.15 : 100; ymax = niceCeil(ymax);
+  const X = x => ml + (x-x0)/xr*(W-ml-mr);
+  const Y = v => mt + (1 - v/ymax)*(H-mt-mb);
+  const pw=(W-ml-mr)/Math.max(1,xs.length-1);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica,Arial,sans-serif">`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  s+=`<text x="${ml}" y="20" font-size="15" font-weight="700" fill="#23404f">${esc(pf.nome)}${pf.dir?` <tspan font-weight="400" fill="#66707a" font-size="12">· direção ${esc(pf.dir)}</tspan>`:''}</text>`;
+  // faixas condutivas
+  res.rows.forEach(r=>{ if(r.anom) s+=`<rect x="${X(r.x)-pw/2}" y="${mt}" width="${pw}" height="${H-mt-mb}" fill="#dbe6fd" opacity=".75"/>`; });
+  // grade
+  const ticks=5; for(let i=0;i<=ticks;i++){ const v=ymax*i/ticks; const y=Y(v); s+=`<line x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}" stroke="#e7e4dc"/><text x="${ml-6}" y="${y+4}" font-size="11" text-anchor="end" fill="#66707a">${fmt(v,0)}</text>`; }
+  s+=`<text transform="translate(14 ${(mt+H-mb)/2}) rotate(-90)" font-size="11" text-anchor="middle" fill="#66707a">ρa (Ω·m)</text>`;
+  // mediana e limiar
+  if (isFinite(res.med)) s+=`<line x1="${ml}" x2="${W-mr}" y1="${Y(res.med)}" y2="${Y(res.med)}" stroke="#8a8f96" stroke-dasharray="5 4"/><text x="${W-mr}" y="${Y(res.med)-4}" font-size="10" text-anchor="end" fill="#66707a">mediana ${fmt(res.med,1)}</text>`;
+  if (isFinite(res.corte)) s+=`<line x1="${ml}" x2="${W-mr}" y1="${Y(res.corte)}" y2="${Y(res.corte)}" stroke="#1d4ed8" stroke-dasharray="2 4"/><text x="${W-mr}" y="${Y(res.corte)+12}" font-size="10" text-anchor="end" fill="#1d4ed8">limiar condutivo ${fmt(res.corte,1)}</text>`;
+  // faixa colorida (barra de cor contínua)
+  const by=H-mb+8, bh=16; const pts=res.rows.filter(r=>isFinite(r.rho));
+  if (pts.length){
+    const gid='g'+pf.id+'_'+(++GID);
+    s+=`<defs><linearGradient id="${gid}" x1="0" x2="1" y1="0" y2="0">`+pts.map(r=>`<stop offset="${((r.x-x0)/xr*100).toFixed(2)}%" stop-color="${sc.css(r.rho)}"/>`).join('')+`</linearGradient></defs>`;
+    s+=`<rect x="${ml}" y="${by}" width="${W-ml-mr}" height="${bh}" rx="3" fill="url(#${gid})" stroke="rgba(0,0,0,.2)"/>`;
+  }
+  // linha
+  let d=''; pts.forEach((r,i)=>{ d+=(i?'L':'M')+X(r.x).toFixed(1)+' '+Y(r.rho).toFixed(1); });
+  if (d) s+=`<path d="${d}" fill="none" stroke="#23404f" stroke-width="2"/>`;
+  pts.forEach(r=>{ s+=`<circle cx="${X(r.x)}" cy="${Y(r.rho)}" r="${r.anom?7:5.5}" fill="${sc.css(r.rho)}" stroke="${r.anom?'#0b2a6b':'#23404f'}" stroke-width="${r.anom?2:1.2}"/>`; });
+  // mínimo
+  if (res.min){ const r=res.min; s+=`<text x="${X(r.x)}" y="${Y(r.rho)+22}" font-size="11" font-weight="700" text-anchor="middle" fill="#1d4ed8">${fmt(r.rho,1)}</text>`; }
+  // rótulos estacas
+  res.rows.forEach(r=>{ s+=`<text x="${X(r.x)}" y="${by+bh+15}" font-size="10.5" text-anchor="middle" fill="${r.x===0?'#23404f':'#555'}" font-weight="${r.x===0?700:400}">${rotuloCurto(r.x)}</text>`; });
+  s+=`<text x="${ml}" y="${H-6}" font-size="10" fill="#66707a">◀ Esquerda (E)</text><text x="${W-mr}" y="${H-6}" font-size="10" text-anchor="end" fill="#66707a">Direita (D) ▶</text>`;
+  // poço
+  if (ce.poco && ce.poco.perfil===pf.id){ const px=X(+ce.poco.x); s+=`<g><line x1="${px}" x2="${px}" y1="${mt-2}" y2="${by}" stroke="#c96a2b" stroke-width="2" stroke-dasharray="6 3"/><path d="M${px-8} ${mt-14} L${px+8} ${mt-14} L${px} ${mt-2} Z" fill="#c96a2b"/><text x="${px+11}" y="${mt-4}" font-size="11" font-weight="700" fill="#c96a2b">POÇO</text></g>`; }
+  s+='</svg>';
+  return s;
+}
+function niceCeil(v){ if(!(v>0)) return 10; const p=Math.pow(10,Math.floor(Math.log10(v))); const m=v/p; const n=m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10; return n*p; }
+
+/* ===================== mapa (canvas) ===================== */
+function drawMapa(cv, scale=1, Wopt=900){
+  const p=P(), ce=p.ce, sc=curScale();
+  const perfis=ce.perfis.map(pf=>({pf, pos:num(pf.pos)||0, res:calcPerfil(ce,pf)})).sort((a,b)=>a.pos-b.pos);
+  const xs=estacas(ce); const x0=Math.min(...xs), x1=Math.max(...xs);
+  const W=Wopt, ml=W<600?56:70, mr=W<600?14:24, mt=40, mb=56;
+  const ps=perfis.map(o=>o.pos); let y0=Math.min(...ps), y1=Math.max(...ps);
+  const single = (y1-y0)<1e-9; if (single){ y0-=5; y1+=5; }
+  const xr=(x1-x0)||1, yr=(y1-y0);
+  const plotW=W-ml-mr; let plotH = Math.max(140, Math.min(420, plotW*yr/xr)); if (single) plotH=120;
+  const H=mt+plotH+mb;
+  cv.width=W*scale; cv.height=H*scale; const g=cv.getContext('2d'); g.setTransform(scale,0,0,scale,0,0);
+  g.fillStyle='#fff'; g.fillRect(0,0,W,H);
+  g.fillStyle='#23404f'; g.font='bold 14px Helvetica,Arial'; g.fillText(W<600?'Mapa de ρa':'Mapa de resistividade aparente — '+(p.nome||''),ml,22);
+  // interpolação
+  const fnPerf = (o, x) => { const r=o.res.rows.filter(z=>isFinite(z.rho)); if(!r.length) return NaN; if (x<=r[0].x) return r[0].rho; if (x>=r[r.length-1].x) return r[r.length-1].rho; for(let i=1;i<r.length;i++){ if (x<=r[i].x){ const f=(x-r[i-1].x)/(r[i].x-r[i-1].x); return Math.pow(10, Math.log10(r[i-1].rho)*(1-f)+Math.log10(r[i].rho)*f); } } return NaN; };
+  const validos = perfis.filter(o=>o.res.n>0);
+  const pxW=Math.round(plotW*scale), pxH=Math.round(plotH*scale);
+  if (validos.length){
+    const img=g.createImageData(pxW,pxH);
+    const colCache = {};
+    for (let j=0;j<pxH;j++){
+      const yy = single ? validos[0].pos : y1 - (j/(pxH-1))*yr; // topo = maior posição
+      // perfis vizinhos
+      let a=validos[0], b=validos[validos.length-1];
+      for (let k=0;k<validos.length-1;k++){ if (yy>=validos[k].pos && yy<=validos[k+1].pos){ a=validos[k]; b=validos[k+1]; break; } }
+      if (yy<=validos[0].pos){ a=b=validos[0]; } if (yy>=validos[validos.length-1].pos){ a=b=validos[validos.length-1]; }
+      const f = (b.pos-a.pos)>0 ? (yy-a.pos)/(b.pos-a.pos) : 0;
+      for (let i=0;i<pxW;i++){
+        const xx = x0 + (i/(pxW-1))*xr;
+        const keyA=a.pf.id+':'+i, keyB=b.pf.id+':'+i;
+        const va = colCache[keyA] ?? (colCache[keyA]=fnPerf(a,xx));
+        const vb = colCache[keyB] ?? (colCache[keyB]=fnPerf(b,xx));
+        let v; if (isFinite(va)&&isFinite(vb)) v=Math.pow(10, Math.log10(va)*(1-f)+Math.log10(vb)*f); else v=isFinite(va)?va:vb;
+        const c = isFinite(v)? sc.rgb(v) : [240,240,240];
+        const o=(j*pxW+i)*4; img.data[o]=c[0]; img.data[o+1]=c[1]; img.data[o+2]=c[2]; img.data[o+3]=255;
+      }
+    }
+    // putImageData ignora transform: usar canvas temporário
+    const tmp=document.createElement('canvas'); tmp.width=pxW; tmp.height=pxH; tmp.getContext('2d').putImageData(img,0,0);
+    g.save(); g.setTransform(1,0,0,1,0,0); g.drawImage(tmp, ml*scale, mt*scale); g.restore();
+    // isolinhas simples (marching squares em grade grossa)
+    drawIsolinhas(g, validos, fnPerf, {x0,x1,y0,y1,ml,mt,plotW,plotH,single}, sc);
+  } else {
+    g.fillStyle='#f3f3f3'; g.fillRect(ml,mt,plotW,plotH); g.fillStyle='#888'; g.font='14px Helvetica'; g.textAlign='center'; g.fillText('Digite as leituras de ΔV na aba Ficha',ml+plotW/2,mt+plotH/2); g.textAlign='left';
+  }
+  g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=1; g.strokeRect(ml,mt,plotW,plotH);
+  const X = x => ml + (x-x0)/xr*plotW;
+  const Y = y => single ? mt+plotH/2 : mt + (1-(y-y0)/yr)*plotH;
+  // perfis e estacas
+  perfis.forEach(o=>{
+    const y=Y(o.pos); g.strokeStyle='rgba(20,20,20,.55)'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(ml,y); g.lineTo(ml+plotW,y); g.stroke(); g.setLineDash([]);
+    o.res.rows.forEach(r=>{ g.beginPath(); g.arc(X(r.x),y, r.anom?4.5:3,0,Math.PI*2); g.fillStyle=r.anom?'#0b2a6b':'#222'; g.fill(); if(r.anom){ g.strokeStyle='#fff'; g.lineWidth=1.5; g.stroke(); } });
+    g.fillStyle='#23404f'; g.font='bold 11px Helvetica'; g.textAlign='right'; g.fillText(o.pf.nome, ml-6, y+4); g.textAlign='left';
+  });
+  // eixo x
+  g.fillStyle='#444'; g.font='10.5px Helvetica'; g.textAlign='center';
+  xs.forEach(x=>{ g.fillText(rotuloCurto(x), X(x), mt+plotH+14); });
+  g.fillStyle='#66707a'; g.font='10px Helvetica'; g.textAlign='left'; g.fillText('◀ Esquerda (E)', ml, mt+plotH+30); g.textAlign='right'; g.fillText('Direita (D) ▶', ml+plotW, mt+plotH+30); g.textAlign='left';
+  // poço
+  if (ce.poco){ const o=perfis.find(z=>z.pf.id===ce.poco.perfil); if (o){ const px=X(+ce.poco.x), py=Y(o.pos); g.beginPath(); g.arc(px,py,9,0,Math.PI*2); g.fillStyle='#fff'; g.fill(); g.lineWidth=3; g.strokeStyle='#c96a2b'; g.stroke(); g.beginPath(); g.arc(px,py,3.5,0,Math.PI*2); g.fillStyle='#c96a2b'; g.fill(); g.font='bold 12px Helvetica'; g.fillStyle='#fff'; g.strokeStyle='#7a3a10'; g.lineWidth=3; g.strokeText('POÇO',px+10,py-14); g.fillText('POÇO',px+10,py-14); } }
+  // barra de cores
+  const by=H-18, bx=ml, bw=plotW*0.6;
+  const grd=g.createLinearGradient(bx,0,bx+bw,0); STOPS.forEach(s=>grd.addColorStop(s[0], rgb(s[1]))); g.fillStyle=grd; g.fillRect(bx,by,bw,10); g.strokeStyle='rgba(0,0,0,.3)'; g.strokeRect(bx,by,bw,10);
+  g.fillStyle='#1e3a8a'; g.font='bold 10px Helvetica'; g.textAlign='right'; g.fillText(fmt(sc.vmin,1),bx-4,by+9); g.fillStyle='#b91c1c'; g.textAlign='left'; g.fillText(fmt(sc.vmax,1)+' Ω·m',bx+bw+4,by+9);
+  if (W>=600){ g.fillStyle='#66707a'; g.font='10px Helvetica'; g.fillText('azul = condutivo · vermelho = resistivo', bx+bw+70, by+9); }
+  if (!single){ g.save(); g.translate(16, mt+plotH/2); g.rotate(-Math.PI/2); g.textAlign='center'; g.fillStyle='#66707a'; g.font='10px Helvetica'; g.fillText('posição dos perfis (m)',0,0); g.restore(); }
+  return {W,H};
+}
+function drawIsolinhas(g, validos, fnPerf, b, sc){
+  const nx=60, ny= b.single? 2 : 30; const xr=b.x1-b.x0, yr=(b.y1-b.y0)||1;
+  if (b.single) return; // uma linha só: sem isolinhas
+  const grid=[]; for(let j=0;j<=ny;j++){ const yy=b.y1 - j/ny*yr; let a=validos[0], c=validos[validos.length-1];
+    for (let k=0;k<validos.length-1;k++){ if (yy>=validos[k].pos && yy<=validos[k+1].pos){ a=validos[k]; c=validos[k+1]; break; } }
+    if (yy<=validos[0].pos) a=c=validos[0]; if (yy>=validos[validos.length-1].pos) a=c=validos[validos.length-1];
+    const f=(c.pos-a.pos)>0?(yy-a.pos)/(c.pos-a.pos):0; const row=[];
+    for(let i=0;i<=nx;i++){ const xx=b.x0+i/nx*xr; const va=fnPerf(a,xx), vc=fnPerf(c,xx); row.push(Math.log10(isFinite(va)&&isFinite(vc)? Math.pow(10,Math.log10(va)*(1-f)+Math.log10(vc)*f) : (isFinite(va)?va:vc))); }
+    grid.push(row); }
+  const lo=Math.log10(sc.vmin), hi=Math.log10(sc.vmax); const levels=[]; for(let k=1;k<6;k++) levels.push(lo+(hi-lo)*k/6);
+  const PX=i=>b.ml+i/nx*b.plotW, PY=j=>b.mt+j/ny*b.plotH;
+  g.strokeStyle='rgba(0,0,0,.28)'; g.lineWidth=0.8;
+  levels.forEach(L=>{ g.beginPath();
+    for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){
+      const v=[grid[j][i],grid[j][i+1],grid[j+1][i+1],grid[j+1][i]]; if (v.some(z=>!isFinite(z))) continue;
+      const pts=[]; const E=[[0,1],[1,2],[2,3],[3,0]]; const C=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]];
+      E.forEach(([p,q])=>{ if ((v[p]-L)*(v[q]-L)<0){ const t=(L-v[p])/(v[q]-v[p]); pts.push([PX(C[p][0]+(C[q][0]-C[p][0])*t), PY(C[p][1]+(C[q][1]-C[p][1])*t)]); } });
+      if (pts.length>=2){ g.moveTo(pts[0][0],pts[0][1]); g.lineTo(pts[1][0],pts[1][1]); if (pts.length===4){ g.moveTo(pts[2][0],pts[2][1]); g.lineTo(pts[3][0],pts[3][1]); } }
+    } g.stroke(); });
+}
+
+
+function niceStep(span, n){ const raw=span/n; const p=Math.pow(10,Math.floor(Math.log10(raw))); const m=raw/p; return (m<=1?1:m<=2?2:m<=5?5:10)*p; }
+function drawMapaUTM(cv, scale=1, Wopt=900){
+  const p=P(), ce=p.ce, sc=curScale(); const G=georef();
+  const W=Wopt, ml=W<600?62:78, mr=W<600?14:24, mt=40, mb=64;
+  const est=[]; const pts=[];
+  ce.perfis.forEach(pf=>{ const g=G[pf.id]; if(!g) return; calcPerfil(ce,pf).rows.forEach(r=>{ const u=utmEstaca(g,r.x); const o={pf,x:r.x,E:u.E,N:u.N,rho:r.rho,anom:r.anom}; est.push(o); if(isFinite(r.rho)&&r.rho>0) pts.push(o); }); });
+  let E1=Math.min(...est.map(o=>o.E)), E2=Math.max(...est.map(o=>o.E)), N1=Math.min(...est.map(o=>o.N)), N2=Math.max(...est.map(o=>o.N));
+  const span=Math.max(E2-E1,N2-N1,20); const pad=Math.max(8, span*0.12);
+  E1-=pad; E2+=pad; N1-=pad; N2+=pad;
+  if (E2-E1 < (N2-N1)*0.6){ const c=(E1+E2)/2, h=(N2-N1)*0.3; E1=c-h; E2=c+h; }
+  if (N2-N1 < (E2-E1)*0.45){ const c=(N1+N2)/2, h=(E2-E1)*0.225; N1=c-h; N2=c+h; }
+  let plotW=W-ml-mr; let s=plotW/(E2-E1); let plotH=(N2-N1)*s; const maxH=Math.max(260,plotW*1.1);
+  if (plotH>maxH){ s=maxH/(N2-N1); plotH=maxH; const w2=(E2-E1)*s; }
+  const pw=(E2-E1)*s; const ox=ml+(plotW-pw)/2; plotW=pw;
+  const H=mt+plotH+mb;
+  cv.width=W*scale; cv.height=H*scale; const g=cv.getContext('2d'); g.setTransform(scale,0,0,scale,0,0);
+  g.fillStyle='#fff'; g.fillRect(0,0,W,H);
+  g.fillStyle='#23404f'; g.font='bold 14px Helvetica,Arial'; g.textAlign='left'; g.fillText(W<600?'Mapa de ρa (UTM)':'Mapa de resistividade aparente (UTM) — '+(p.nome||''),12,22);
+  const X=E=>ox+(E-E1)*s, Y=N=>mt+(N2-N)*s;
+  // interpolação IDW em grade
+  const step=num(ce.step)||5; const R=Math.max(2.2*step, 12);
+  if (pts.length){
+    const cell=Math.max(2, Math.round(3/ (scale||1)) ); const gw=Math.ceil(plotW/cell), gh=Math.ceil(plotH/cell);
+    const img=g.createImageData(gw,gh); const LV=new Float32Array((gw+1)*(gh+1)); const AL=new Float32Array((gw+1)*(gh+1));
+    const lp=pts.map(o=>Math.log10(o.rho)); const SM=Math.pow(step*0.8,2);
+    for(let j=0;j<=gh;j++) for(let i=0;i<=gw;i++){
+      const E=E1+(i*cell)/s, N=N2-(j*cell)/s; let sw=0, sv=0, dmin=1e9;
+      for(let k=0;k<pts.length;k++){ const dx=pts[k].E-E, dy=pts[k].N-N; const d2=dx*dx+dy*dy; const d=Math.sqrt(d2); if(d<dmin) dmin=d; const w=1/(d2+SM); sw+=w; sv+=w*lp[k]; }
+      const v=sv/sw; const al = dmin<=R ? 1 : Math.max(0, 1-(dmin-R)/R);
+      LV[j*(gw+1)+i]=v; AL[j*(gw+1)+i]=al;
+      if (i<gw && j<gh){ const c=rampRGB(sc.t(Math.pow(10,v))); const o=(j*gw+i)*4; img.data[o]=Math.round(255+(c[0]-255)*al); img.data[o+1]=Math.round(255+(c[1]-255)*al); img.data[o+2]=Math.round(255+(c[2]-255)*al); img.data[o+3]=255; }
+    }
+    const tmp=document.createElement('canvas'); tmp.width=gw; tmp.height=gh; tmp.getContext('2d').putImageData(img,0,0);
+    g.imageSmoothingEnabled=true; g.drawImage(tmp, ox, mt, gw*cell, gh*cell);
+    // isolinhas
+    const lo=Math.log10(sc.vmin), hi=Math.log10(sc.vmax); g.strokeStyle='rgba(0,0,0,.28)'; g.lineWidth=0.8;
+    for(let k=1;k<6;k++){ const L=lo+(hi-lo)*k/6; g.beginPath();
+      for(let j=0;j<gh;j++) for(let i=0;i<gw;i++){
+        const id=[j*(gw+1)+i, j*(gw+1)+i+1, (j+1)*(gw+1)+i+1, (j+1)*(gw+1)+i]; if (id.some(q=>AL[q]<0.6)) continue;
+        const v=id.map(q=>LV[q]); const C=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]]; const pp=[];
+        [[0,1],[1,2],[2,3],[3,0]].forEach(([a,b])=>{ if((v[a]-L)*(v[b]-L)<0){ const t=(L-v[a])/(v[b]-v[a]); pp.push([ox+(C[a][0]+(C[b][0]-C[a][0])*t)*cell, mt+(C[a][1]+(C[b][1]-C[a][1])*t)*cell]); } });
+        if(pp.length>=2){ g.moveTo(pp[0][0],pp[0][1]); g.lineTo(pp[1][0],pp[1][1]); if(pp.length===4){ g.moveTo(pp[2][0],pp[2][1]); g.lineTo(pp[3][0],pp[3][1]); } }
+      } g.stroke(); }
+  } else {
+    g.fillStyle='#f3f3f3'; g.fillRect(ox,mt,plotW,plotH); g.fillStyle='#888'; g.font='13px Helvetica'; g.textAlign='center'; g.fillText('Digite as leituras na aba Ficha',ox+plotW/2,mt+plotH/2); g.textAlign='left';
+  }
+  // grade UTM
+  const gs=niceStep(E2-E1, W<600?3:5);
+  g.font='10px Helvetica'; g.fillStyle='#555'; g.strokeStyle='rgba(0,0,0,.12)'; g.lineWidth=1;
+  for(let e=Math.ceil(E1/gs)*gs; e<=E2; e+=gs){ const x=X(e); g.beginPath(); g.moveTo(x,mt); g.lineTo(x,mt+plotH); g.stroke(); g.textAlign='center'; g.fillText(String(Math.round(e)), x, mt+plotH+13); }
+  for(let n=Math.ceil(N1/gs)*gs; n<=N2; n+=gs){ const y=Y(n); g.beginPath(); g.moveTo(ox,y); g.lineTo(ox+plotW,y); g.stroke(); g.save(); g.translate(ox-4,y); g.rotate(-Math.PI/2); g.textAlign='center'; g.fillText(String(Math.round(n)),0,0); g.restore(); }
+  g.strokeStyle='rgba(0,0,0,.4)'; g.strokeRect(ox,mt,plotW,plotH);
+  g.fillStyle='#66707a'; g.font='10px Helvetica'; g.textAlign='center'; g.fillText('UTM E (m)'+(p.zona?' · zona '+p.zona:''), ox+plotW/2, mt+plotH+26);
+  // perfis
+  ce.perfis.forEach(pf=>{ const G1=G[pf.id]; if(!G1) return; const xs=estacas(ce); const a=utmEstaca(G1,xs[0]), b=utmEstaca(G1,xs[xs.length-1]);
+    g.strokeStyle='rgba(20,20,20,.7)'; g.lineWidth=1.3; g.setLineDash([5,3]); g.beginPath(); g.moveTo(X(a.E),Y(a.N)); g.lineTo(X(b.E),Y(b.N)); g.stroke(); g.setLineDash([]);
+    est.filter(o=>o.pf===pf).forEach(o=>{ g.beginPath(); g.arc(X(o.E),Y(o.N), o.anom?4.5:(o.x===0?4:2.8),0,Math.PI*2); g.fillStyle=o.anom?'#0b2a6b':(o.x===0?'#fff':'#222'); g.fill(); g.lineWidth=o.anom?1.5:1.2; g.strokeStyle=o.anom?'#fff':'#222'; g.stroke(); });
+    const ang=G1.az*Math.PI/180; const ux=Math.sin(ang), uy=-Math.cos(ang);
+    g.font='bold 10.5px Helvetica'; g.textAlign='center'; g.textBaseline='middle';
+    const lab=(pt,txt,dir)=>{ const px=X(pt.E)+ux*dir*13, py=Y(pt.N)+uy*dir*13; g.lineWidth=3; g.strokeStyle='#fff'; g.strokeText(txt,px,py); g.fillStyle='#23404f'; g.fillText(txt,px,py); };
+    lab(a, 'E'+fmtL(-xs[0]), -1); lab(b, 'D'+fmtL(xs[xs.length-1]), 1);
+    const c0=utmEstaca(G1,0); const nx=-uy, ny=ux; const tx=X(c0.E)+nx*14, ty=Y(c0.N)+ny*14;
+    g.font='bold 11px Helvetica'; g.lineWidth=3; g.strokeStyle='#fff'; g.strokeText(pf.nome,tx,ty); g.fillStyle='#23404f'; g.fillText(pf.nome,tx,ty);
+    g.textBaseline='alphabetic';
+  });
+  // poço
+  if (ce.poco && G[ce.poco.perfil]){ const u=utmEstaca(G[ce.poco.perfil], +ce.poco.x); const px=X(u.E), py=Y(u.N);
+    g.beginPath(); g.arc(px,py,9,0,Math.PI*2); g.fillStyle='#fff'; g.fill(); g.lineWidth=3; g.strokeStyle='#c96a2b'; g.stroke(); g.beginPath(); g.arc(px,py,3.5,0,Math.PI*2); g.fillStyle='#c96a2b'; g.fill();
+    const t1='POÇO', t2=fUTM(u.E)+'E / '+fUTM(u.N)+'N'; g.textAlign = px>ox+plotW*0.6 ? 'right':'left'; const dx = g.textAlign==='right'? -12 : 12;
+    g.font='bold 12px Helvetica'; g.lineWidth=3; g.strokeStyle='#fff'; g.strokeText(t1,px+dx,py-14); g.fillStyle='#a2521c'; g.fillText(t1,px+dx,py-14);
+    g.font='bold 10.5px Helvetica'; g.strokeText(t2,px+dx,py+20); g.fillStyle='#a2521c'; g.fillText(t2,px+dx,py+20); g.textAlign='left'; }
+  // norte
+  const nx0=ox+plotW-20, ny0=mt+16; g.fillStyle='#23404f'; g.beginPath(); g.moveTo(nx0,ny0-12); g.lineTo(nx0+7,ny0+8); g.lineTo(nx0,ny0+3); g.lineTo(nx0-7,ny0+8); g.closePath(); g.fill(); g.strokeStyle='#fff'; g.lineWidth=1; g.stroke();
+  g.font='bold 11px Helvetica'; g.textAlign='center'; g.lineWidth=3; g.strokeText('N',nx0,ny0+20); g.fillText('N',nx0,ny0+20);
+  // escala gráfica
+  const sl=niceStep(E2-E1,5); const bx=ox+plotW-sl*s, byy=H-12; g.fillStyle='#222'; g.fillRect(bx,byy,sl*s/2,4); g.strokeStyle='#222'; g.lineWidth=1; g.strokeRect(bx,byy,sl*s,4);
+  g.font='10px Helvetica'; g.textAlign='left'; g.fillText('0',bx,byy-3); g.textAlign='right'; g.fillText(sl+' m',bx+sl*s,byy-3);
+  // barra de cores
+  const by=H-16, bx2=ox+28, bw=Math.max(80, Math.min(plotW - sl*s - 120, 340));
+  const grd=g.createLinearGradient(bx2,0,bx2+bw,0); STOPS.forEach(st=>grd.addColorStop(st[0], rgb(st[1]))); g.fillStyle=grd; g.fillRect(bx2,by,bw,10); g.strokeStyle='rgba(0,0,0,.3)'; g.strokeRect(bx2,by,bw,10);
+  g.fillStyle='#1e3a8a'; g.font='bold 10px Helvetica'; g.textAlign='right'; g.fillText(fmt(sc.vmin,1),bx2-4,by+9); g.fillStyle='#b91c1c'; g.textAlign='left'; g.fillText(fmt(sc.vmax,1)+' Ω·m',bx2+bw+4,by+9);
+  return {W,H};
+}
+
+/* ===================== mapa de satélite ===================== */
+function utmToLatLon(E,N,zone,south){
+ const a=6378137, f=1/298.257223563, k0=0.9996; const e2=f*(2-f); const ep2=e2/(1-e2);
+ const x=E-500000; const y= south? N-10000000 : N;
+ const M=y/k0; const mu=M/(a*(1-e2/4-3*e2*e2/64-5*e2**3/256));
+ const e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+ const phi1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1*e1/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu);
+ const s1=Math.sin(phi1), c1=Math.cos(phi1), t1=Math.tan(phi1);
+ const C1=ep2*c1*c1, T1=t1*t1, N1=a/Math.sqrt(1-e2*s1*s1), R1=a*(1-e2)/Math.pow(1-e2*s1*s1,1.5), D=x/(N1*k0);
+ const lat=phi1-(N1*t1/R1)*(D*D/2-(5+3*T1+10*C1-4*C1*C1-9*ep2)*D**4/24+(61+90*T1+298*C1+45*T1*T1-252*ep2-3*C1*C1)*D**6/720);
+ const lon0=((zone-1)*6-180+3)*Math.PI/180;
+ const lon=lon0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1*C1+8*ep2+24*T1*T1)*D**5/120)/c1;
+ return [lat*180/Math.PI, lon*180/Math.PI];
+}
+function zonaUTM(){ const z=String(P().zona||'24M').toUpperCase().match(/(\d{1,2})\s*([A-Z])?/); if(!z) return {zone:24,south:true}; const L=z[2]||'M'; return {zone:+z[1], south: L==='S' || L<'N'}; }
+function ll(E,N){ const z=zonaUTM(); return utmToLatLon(E,N,z.zone,z.south); }
+const TILE='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/';
+const SAT={ z:18, lat:0, lon:0, inited:false, ok:0, fail:0, raster:null, pts:[], fitted:false };
+function wpx(lat,lon,z){ const n=256*Math.pow(2,z); const s=Math.sin(lat*Math.PI/180); return [ (lon+180)/360*n, (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n ]; }
+function wll(x,y,z){ const n=256*Math.pow(2,z); const lon=x/n*360-180; const t=Math.PI-2*Math.PI*y/n; return [180/Math.PI*Math.atan(0.5*(Math.exp(t)-Math.exp(-t))), lon]; }
+function satData(){
+  const p=P(), ce=p.ce, G=georef(); const est=[], lines=[];
+  ce.perfis.forEach(pf=>{ const g=G[pf.id]; if(!g) return; const xs=estacas(ce); const rows=calcPerfil(ce,pf).rows;
+    rows.forEach(r=>{ const u=utmEstaca(g,r.x); const [la,lo]=ll(u.E,u.N); est.push({pf,x:r.x,E:u.E,N:u.N,lat:la,lon:lo,rho:r.rho,anom:r.anom}); });
+    const a=utmEstaca(g,xs[0]), b=utmEstaca(g,xs[xs.length-1]); lines.push({pf, a:ll(a.E,a.N), b:ll(b.E,b.N), c:ll(g.E0,g.N0), az:g.az, prov: g.der!=='pontas'}); });
+  let poco=null; if (ce.poco && G[ce.poco.perfil]){ const u=utmEstaca(G[ce.poco.perfil],+ce.poco.x); poco={E:u.E,N:u.N,ll:ll(u.E,u.N)}; }
+  return {est,lines,poco};
+}
+function satRaster(est){
+  const pts=est.filter(o=>isFinite(o.rho)&&o.rho>0); if(!pts.length) return null;
+  const step=num(P().ce.step)||5; const R=Math.max(2.2*step,12); const SM=Math.pow(step*0.8,2);
+  let E1=Math.min(...pts.map(o=>o.E))-R, E2=Math.max(...pts.map(o=>o.E))+R, N1=Math.min(...pts.map(o=>o.N))-R, N2=Math.max(...pts.map(o=>o.N))+R;
+  const res=0.5; const gw=Math.ceil((E2-E1)/res), gh=Math.ceil((N2-N1)/res);
+  const cv=document.createElement('canvas'); cv.width=gw; cv.height=gh; const g=cv.getContext('2d'); const img=g.createImageData(gw,gh);
+  const sc=curScale(); const lp=pts.map(o=>Math.log10(o.rho));
+  for(let j=0;j<gh;j++) for(let i=0;i<gw;i++){
+    const E=E1+(i+0.5)*res, N=N2-(j+0.5)*res; let sw=0,sv=0,dmin=1e9;
+    for(let k=0;k<pts.length;k++){ const dx=pts[k].E-E, dy=pts[k].N-N; const d2=dx*dx+dy*dy; if(d2<dmin) dmin=d2; const w=1/(d2+SM); sw+=w; sv+=w*lp[k]; }
+    dmin=Math.sqrt(dmin); const al = dmin<=R*0.6 ? 1 : Math.max(0, 1-(dmin-R*0.6)/(R*0.4));
+    const c=rampRGB(sc.t(Math.pow(10,sv/sw))); const o=(j*gw+i)*4; img.data[o]=c[0]; img.data[o+1]=c[1]; img.data[o+2]=c[2]; img.data[o+3]=Math.round(255*al);
+  }
+  g.putImageData(img,0,0);
+  return {cv, nw:ll(E1,N2), se:ll(E2,N1)};
+}
+function satInit(){
+  if (SAT.inited) return; SAT.inited=true;
+  const box=$('#sat'); let drag=null; const ptrs=new Map(); let pinch0=null;
+  box.addEventListener('pointerdown', e=>{ box.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,[e.clientX,e.clientY]); if(ptrs.size===1) drag={x:e.clientX,y:e.clientY,moved:false}; else if(ptrs.size===2){ const v=[...ptrs.values()]; pinch0=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]); drag=null; } box.style.cursor='grabbing'; });
+  box.addEventListener('pointermove', e=>{ if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+    if (ptrs.size===2 && pinch0){ const v=[...ptrs.values()]; const d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]); if (d/pinch0>1.35){ satZoom(1); pinch0=d; } else if (d/pinch0<0.74){ satZoom(-1); pinch0=d; } return; }
+    if (!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; if (Math.abs(dx)+Math.abs(dy)>3) drag.moved=true; drag.x=e.clientX; drag.y=e.clientY;
+    const [cx,cy]=wpx(SAT.lat,SAT.lon,SAT.z); [SAT.lat,SAT.lon]=wll(cx-dx,cy-dy,SAT.z); satDraw(); });
+  const up=e=>{ const wasTap = drag && !drag.moved && ptrs.size===1; ptrs.delete(e.pointerId); if(ptrs.size<2) pinch0=null; if (wasTap) satTap(e); if(!ptrs.size){ drag=null; box.style.cursor='grab'; } };
+  box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+  box.addEventListener('wheel', e=>{ e.preventDefault(); satZoom(e.deltaY<0?1:-1); }, {passive:false});
+  $('#zIn').addEventListener('pointerdown', e=>e.stopPropagation()); $('#zOut').addEventListener('pointerdown', e=>e.stopPropagation()); $('#zFit').addEventListener('pointerdown', e=>e.stopPropagation());
+  $('#zIn').addEventListener('click', ()=>satZoom(1)); $('#zOut').addEventListener('click', ()=>satZoom(-1)); $('#zFit').addEventListener('click', ()=>{ SAT.fitted=false; satRender(); });
+  $('#satOp').addEventListener('input', ()=>satDraw());
+}
+function satZoom(d){ SAT.z=Math.max(12,Math.min(20,SAT.z+d)); satDraw(); }
+function satFit(D){
+  const box=$('#sat'); const W=box.clientWidth||600, H=box.clientHeight||480;
+  const L=D.est.length? D.est : null; if(!L){ const p=P(); const E=num(p.utmE), N=num(p.utmN); if(isFinite(E)&&isFinite(N)){ [SAT.lat,SAT.lon]=ll(E,N); SAT.z=17; } return; }
+  const la=L.map(o=>o.lat), lo=L.map(o=>o.lon); const c=[(Math.min(...la)+Math.max(...la))/2,(Math.min(...lo)+Math.max(...lo))/2]; SAT.lat=c[0]; SAT.lon=c[1];
+  for (let z=20; z>=12; z--){ const a=wpx(Math.max(...la),Math.min(...lo),z), b=wpx(Math.min(...la),Math.max(...lo),z); if ((b[0]-a[0])<W*0.7 && (b[1]-a[1])<H*0.7){ SAT.z=z; break; } }
+  SAT.z=Math.min(SAT.z,19);
+}
+function satRender(){
+  satInit(); const D=satData(); SAT.D=D; SAT.raster=satRaster(D.est);
+  if (!SAT.fitted){ satFit(D); SAT.fitted=true; }
+  // links
+  const p=P(); let alvo=null, nome='';
+  if (D.poco){ alvo=D.poco.ll; nome='poço'; } else if (D.lines.length){ alvo=D.lines[0].c; nome='centro do Perfil 1'; } else { const E=num(p.utmE),N=num(p.utmN); if(isFinite(E)&&isFinite(N)){ alvo=ll(E,N); nome='estudo'; } }
+  if (alvo){ const q=alvo[0].toFixed(6)+','+alvo[1].toFixed(6);
+    $('#satLinks').innerHTML=linksMapa(alvo[0],alvo[1],'o '+nome);
+    $('#satInfo').textContent=`${nome[0].toUpperCase()+nome.slice(1)}: ${alvo[0].toFixed(6)}, ${alvo[1].toFixed(6)} (lat, long · WGS84) · zona UTM ${zonaUTM().zone}${zonaUTM().south?'S':'N'}`; }
+  else { $('#satLinks').innerHTML=''; $('#satInfo').textContent='Informe as coordenadas UTM (aba Estudo ou E05/D05 dos perfis) para posicionar o mapa.'; }
+  satDraw();
+}
+function satDraw(){
+  const box=$('#sat'); const W=box.clientWidth, H=box.clientHeight; if(!W) return;
+  const tl=box.querySelector('.tiles'); const z=SAT.z; const [cx,cy]=wpx(SAT.lat,SAT.lon,z);
+  const x0=cx-W/2, y0=cy-H/2; const n=Math.pow(2,z);
+  const need=new Set();
+  const tz=Math.min(z,19); const f=Math.pow(2,z-tz); const ts=256*f; // acima de z19, amplia os tiles do z19
+  for (let ty=Math.floor(y0/ts); ty<=Math.floor((y0+H)/ts); ty++) for (let tx=Math.floor(x0/ts); tx<=Math.floor((x0+W)/ts); tx++){
+    const m=Math.pow(2,tz); if (ty<0||ty>=m) continue; const wx=((tx%m)+m)%m; const key=tz+'/'+ty+'/'+wx; need.add(key);
+    let im=tl.querySelector(`img[data-k="${key}"]`);
+    if (!im){ im=new Image(); im.dataset.k=key; im.alt=''; im.decoding='async';
+      im.onload=()=>{ SAT.ok++; satMsg(); }; im.onerror=()=>{ SAT.fail++; im.style.visibility='hidden'; satMsg(); };
+      im.src=TILE+key; tl.appendChild(im); }
+    im.style.left=(tx*ts-x0)+'px'; im.style.top=(ty*ts-y0)+'px'; im.style.width=ts+'px'; im.style.height=ts+'px';
+  }
+  tl.querySelectorAll('img').forEach(im=>{ if(!need.has(im.dataset.k)) im.remove(); });
+  clearTimeout(SAT.tmo); SAT.tmo=setTimeout(satMsg, 6000);
+  // overlay
+  const cv=box.querySelector('canvas.ov'); const dpr=window.devicePixelRatio||1; cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H); g.lineJoin='round'; g.miterLimit=2;
+  const S=(lat,lon)=>{ const q=wpx(lat,lon,z); return [q[0]-x0, q[1]-y0]; };
+  if (SAT.ok===0 && SAT.fail>0){ // sem imagem: grade simples
+    g.fillStyle='#e9e6df'; g.fillRect(0,0,W,H); }
+  const D=SAT.D; if(!D) return;
+  if (SAT.raster){ const a=S(...SAT.raster.nw), b=S(...SAT.raster.se); g.globalAlpha=(+$('#satOp').value)/100; g.imageSmoothingEnabled=true; g.drawImage(SAT.raster.cv, a[0], a[1], b[0]-a[0], b[1]-a[1]); g.globalAlpha=1; }
+  const sc=curScale(); const mpp=156543.03392*Math.cos(SAT.lat*Math.PI/180)/n; const big = 1/mpp > 1.2; // px por metro
+  D.lines.forEach(L=>{ const a=S(...L.a), b=S(...L.b); g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=3; g.setLineDash(L.prov?[6,5]:[]); g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); g.strokeStyle='rgba(0,0,0,.7)'; g.lineWidth=1.2; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); g.setLineDash([]); });
+  D.est.forEach(o=>{ const [x,y]=S(o.lat,o.lon); const r = o.anom? 7 : 5.5; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fillStyle=isFinite(o.rho)? sc.css(o.rho) : '#999'; g.fill(); g.lineWidth=o.anom?2.5:1.5; g.strokeStyle=o.anom?'#fff':'#111'; g.stroke(); });
+  g.font='bold 12px Helvetica,Arial'; g.textAlign='center'; g.textBaseline='middle';
+  const lab=(t,x,y,col='#fff')=>{ g.lineWidth=3.5; g.strokeStyle='rgba(0,0,0,.85)'; g.strokeText(t,x,y); g.fillStyle=col; g.fillText(t,x,y); };
+  const xs=estacas(P().ce);
+  D.lines.forEach(L=>{ const a=S(...L.a), b=S(...L.b); const ux=(b[0]-a[0]), uy=(b[1]-a[1]); const l=Math.hypot(ux,uy)||1; const nx=ux/l, ny=uy/l;
+    lab('E'+fmtL(-xs[0]), a[0]-nx*16, a[1]-ny*16); lab('D'+fmtL(xs[xs.length-1]), b[0]+nx*16, b[1]+ny*16);
+    const c=S(...L.c); lab(L.pf.nome+(L.prov?' (provisório)':''), c[0]-ny*18, c[1]+nx*18, '#ffe9a8'); });
+  if (big) D.est.forEach(o=>{ if (o.x===-5||o.x===5){ const [x,y]=S(o.lat,o.lon); g.font='10px Helvetica'; lab(rotuloCurto(o.x), x, y-13); } });
+  if (D.poco){ const [x,y]=S(...D.poco.ll); g.beginPath(); g.arc(x,y,11,0,Math.PI*2); g.fillStyle='#fff'; g.fill(); g.lineWidth=3.5; g.strokeStyle='#c96a2b'; g.stroke(); g.beginPath(); g.arc(x,y,4,0,Math.PI*2); g.fillStyle='#c96a2b'; g.fill();
+    g.font='bold 13px Helvetica'; g.textAlign='left'; lab('POÇO', x+15, y-8, '#ffd2a8'); g.font='bold 11px Helvetica'; lab(`${fUTM(D.poco.E)}E / ${fUTM(D.poco.N)}N`, x+15, y+9, '#ffd2a8'); g.textAlign='center'; }
+  // norte e escala
+  g.fillStyle='#fff'; g.strokeStyle='#000'; g.lineWidth=1; const nx0=24, ny0=28; g.beginPath(); g.moveTo(nx0,ny0-14); g.lineTo(nx0+8,ny0+8); g.lineTo(nx0,ny0+3); g.lineTo(nx0-8,ny0+8); g.closePath(); g.fill(); g.stroke(); g.font='bold 12px Helvetica'; lab('N',nx0,ny0+19);
+  const sl=niceStep(W*0.25*mpp,1); const spx=sl/mpp; const bx=12, by=H-22; g.fillStyle='rgba(255,255,255,.85)'; g.fillRect(bx-4,by-16,spx+8,26); g.fillStyle='#111'; g.fillRect(bx,by,spx/2,5); g.strokeStyle='#111'; g.strokeRect(bx,by,spx,5);
+  g.font='10px Helvetica'; g.textAlign='left'; g.fillText('0',bx,by-7); g.textAlign='right'; g.fillText(fmt(sl,0)+' m',bx+spx,by-7);
+  g.textBaseline='alphabetic';
+}
+function satMsg(){
+  const m=$('#satMsg');
+  if (SAT.ok===0 && SAT.fail>0){ if (SAT.msgClosed) return; m.innerHTML='<span style="float:right;font-weight:700;cursor:pointer;padding:0 4px" id="satMsgX">×</span>As imagens de satélite não carregaram aqui (sem internet ou bloqueio da página dentro do Claude). As estacas e cores continuam no lugar certo; use o botão <b>Google Maps</b> abaixo ou abra o app pelo arquivo no navegador do celular.'; m.classList.remove('hidden'); const x=$('#satMsgX'); if(x){ x.onpointerdown=e=>e.stopPropagation(); x.onclick=()=>{ SAT.msgClosed=true; m.classList.add('hidden'); }; } if(!SAT.bgDone){ SAT.bgDone=true; satDraw(); } }
+  else m.classList.add('hidden');
+}
+function satTap(e){
+  const D=SAT.D; if(!D) return; const box=$('#sat'); const r=box.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top;
+  const W=box.clientWidth, H=box.clientHeight; const [cx,cy]=wpx(SAT.lat,SAT.lon,SAT.z);
+  let best=null; D.est.forEach(o=>{ const q=wpx(o.lat,o.lon,SAT.z); const d=Math.hypot(q[0]-cx+W/2-px, q[1]-cy+H/2-py); if(d<18 && (!best||d<best.d)) best={o,d}; });
+  if (best){ const o=best.o; toast(`${o.pf.nome} · ${rotulo(o.x)} · ρa ${isFinite(o.rho)?fmt(o.rho,2)+' Ω·m':'—'} · ${fUTM(o.E)}E / ${fUTM(o.N)}N`); }
+}
+
+function linksMapa(la, lo, rotulo){
+  const q=la.toFixed(6)+','+lo.toFixed(6);
+  return `<div class="row" style="margin-top:8px">
+    <a class="btn sm pri" href="https://www.google.com/maps/@?api=1&map_action=map&center=${q}&zoom=19&basemap=satellite" target="_blank" rel="noopener">🛰 Ver ${rotulo} no satélite</a>
+    <a class="btn sm" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">📍 Google Maps / ir até lá</a>
+    <a class="btn sm" href="https://earth.google.com/web/search/${q}" target="_blank" rel="noopener">Google Earth</a></div>`;
+}
+function temGeo(){ return Object.keys(georef()).length>0; }
+function desenharMapa(cv, scale, W){ const v=P().ce.vista||'utm'; if (v==='utm' && temGeo()) return drawMapaUTM(cv,scale,W); return drawMapa(cv,scale,W); }
+function renderCharts(){
+  const p=P(); if(!p) return; const ce=p.ce; const sc=curScale();
+  const pf=curPerf();
+  if (!$('#tab-ce').classList.contains('hidden') && pf) $('#ceChartOne').innerHTML = perfilSVG(ce,pf,sc)+legendHTML(sc);
+  if (!$('#tab-mapa').classList.contains('hidden')){
+    const cw=$('#mapa').parentElement.clientWidth-30; const Wm=Math.max(340,Math.min(900,cw||900)); desenharMapa($('#mapa'), window.devicePixelRatio>1?2:1, Wm); const vh=$('#vistaHint'); if(vh) vh.textContent = ((P().ce.vista||'utm')==='utm' && temGeo()) ? 'Cada estaca na sua coordenada UTM (norte para cima). Cores interpoladas entre as estacas; áreas longe das estacas ficam esmaecidas.' : ((P().ce.vista||'utm')==='utm' ? 'Sem coordenadas: informe a UTM da estaca 0 na Ficha para ver o mapa georreferenciado. Mostrando o esquema.' : 'Esquema: perfis empilhados pelo afastamento, interpolados entre si.'); $('#mapa').style.width=Wm+'px';
+    try{ satRender(); }catch(e){}
+    $('#mapLegend').innerHTML = '';
+    $('#ceChartsAll').innerHTML = ce.perfis.map(x=>perfilSVG(ce,x,sc)).join('<div style="height:10px"></div>')+legendHTML(sc);
+  }
+}
+
+/* ===================== resumo ===================== */
+function renderResumo(){
+  const p=P(), ce=p.ce; let h='';
+  const kpis=[]; const achados=[];
+  let globalMin=null;
+  ce.perfis.forEach(pf=>{ const r=calcPerfil(ce,pf); if(!r.n) return;
+    const an=r.rows.filter(z=>z.anom);
+    if (r.min && (!globalMin || r.min.rho<globalMin.r.rho)) globalMin={pf,r:r.min,med:r.med};
+    achados.push(`<li><b>${esc(pf.nome)}</b>: ρa de ${fmt(r.min.rho,1)} a ${fmt(r.max,1)} Ω·m (mediana ${fmt(r.med,1)}). ${an.length? `Zona condutiva em <b style="color:#1d4ed8">${an.map(z=>rotulo(z.x)).join(', ')}</b>.` : 'Sem anomalia abaixo do limiar.'}</li>`);
+  });
+  if (!achados.length){ $('#resumo').innerHTML='<p class="hint">Sem leituras ainda. Vá em <b>Ficha</b> e digite as leituras de cada estaca.</p>'; return; }
+  if (globalMin){ const red=(1-globalMin.r.rho/globalMin.med)*100;
+    kpis.push(['Menor ρa', fmt(globalMin.r.rho,2)+' Ω·m'], ['Onde', esc(globalMin.pf.nome)+' · '+rotulo(globalMin.r.x)], ['Abaixo da mediana', fmt(red,0)+'%']); }
+  let poco='';
+  if (ce.poco){ const pf=ce.perfis.find(x=>x.id===ce.poco.perfil); if (pf){ const r=calcPerfil(ce,pf).rows.find(z=>z.x===+ce.poco.x); kpis.push(['Poço marcado', esc(pf.nome)+' · '+rotulo(+ce.poco.x)]);
+    const gP=georef()[pf.id]; let lk=''; if (gP){ const u=utmEstaca(gP,+ce.poco.x); const [la,lo]=ll(u.E,u.N); lk=linksMapa(la,lo,'o poço'); }
+    else if (isFinite(num(p.utmE))&&isFinite(num(p.utmN))){ const [la,lo]=ll(num(p.utmE),num(p.utmN)); lk=linksMapa(la,lo,'o poço'); }
+    poco = `<div class="note w"><b>Locação do poço:</b> ${esc(pf.nome)}, estaca ${rotulo(+ce.poco.x)}${r&&isFinite(r.rho)?` (ρa = ${fmt(r.rho,2)} Ω·m)`:''}${(()=>{ const g=georef()[pf.id]; if(g){ const u=utmEstaca(g,+ce.poco.x); return ` — UTM <b>${fUTM(u.E)}E / ${fUTM(u.N)}N</b>${p.zona?' ('+esc(p.zona)+')':''}`; } return p.utmE&&p.utmN?` — UTM ${esc(p.utmE)}E / ${esc(p.utmN)}N${p.zona?' ('+esc(p.zona)+')':''}`:''; })()}.${lk}</div>`; } }
+  else if (globalMin) poco=`<div class="note">Sugestão: a menor resistividade está em <b>${esc(globalMin.pf.nome)} · ${rotulo(globalMin.r.x)}</b>. Na aba Ficha, toque na estaca para marcar o poço.</div>`;
+  h += `<div class="kpis">${kpis.map(k=>`<div class="kpi"><span>${k[0]}</span><b>${k[1]}</b></div>`).join('')}</div>`;
+  h += poco + `<ul style="margin:8px 0 0;padding-left:18px">${achados.join('')}</ul>`;
+  h += `<p class="hint">Critério: estaca com ρa ≤ ${fmt(100-(num(ce.limiar)||0),0)}% da mediana do próprio perfil. Leitura apoia a interpretação do geólogo; não estima vazão nem qualidade da água.</p>`;
+  $('#resumo').innerHTML=h;
+}
+
+/* ===================== SEV ===================== */
+const AB2_PADRAO=[[1.5,0.5],[2,0.5],[3,0.5],[4,0.5],[5,0.5],[6,0.5],[8,0.5],[10,0.5],[10,2.5],[13,2.5],[16,2.5],[20,2.5],[25,2.5],[32,2.5],[40,2.5],[40,10],[50,10],[65,10],[80,10],[100,10]];
+$('#btnSevAdd').addEventListener('click', ()=>{ const s=P().sev; const last=s.rows[s.rows.length-1]; s.rows.push({ab2:'',mn2:last?last.mn2:'',dv:'',i:'',rho:'',r:''}); touch(); renderSevTable(); setTimeout(()=>{ const ins=$$('#sevTable input[data-k="ab2"]'); if(ins.length) ins[ins.length-1].focus(); },30); });
+$('#btnSevPadrao').addEventListener('click', ()=>{
+  const s=P().sev; const go=()=>{ s.rows=AB2_PADRAO.map(([a,m])=>({ab2:String(a).replace('.',','),mn2:String(m).replace('.',','),dv:'',i:'',rho:'',r:''})); touch(); renderSevTable(); };
+  if (s.rows.some(r=>r.dv||r.rho||r.r)) confirmBox('Tabela padrão','Substituir as linhas atuais (e as leituras) pela tabela padrão de AB/2?', go); else go();
+});
+function calcSev(){
+  const s=P().sev, ipad=num(s.ipad);
+  return s.rows.map((r,idx)=>{ const ab2=num(r.ab2), mn2=num(r.mn2), dv=num(r.dv), R=num(r.r); let I=num(r.i); if(!isFinite(I)) I=ipad;
+    const K=kSchlumberger(ab2,mn2); const rho=rhoDe(modo(),K,r,dv,I,R); return {idx,ab2,mn2,dv,I,R,K,rho}; });
+}
+function renderSevTable(){
+  const s=P().sev, m=modo();
+  const cols = ['#','AB/2 (m)','MN/2 (m)'].concat(m==='rho'?['ρa (Ω·m)','Cor']: m==='r'?['K','R (Ω)','ρa (Ω·m)'] : ['K','ΔV (mV)','I (mA)','ρa (Ω·m)']).concat(['']);
+  const inp=(i,k,v,ph='')=>`<td><input inputmode="decimal" enterkeyhint="next" data-sr="${i}" data-k="${k}" value="${esc(v||'')}" placeholder="${esc(ph)}"></td>`;
+  let h=`<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+  s.rows.forEach((r,i)=>{ h+=`<tr data-sr="${i}"><td class="st">${i+1}</td>`+inp(i,'ab2',r.ab2)+inp(i,'mn2',r.mn2);
+    if (m==='rho') h+=inp(i,'rho',r.rho)+`<td class="rho cor"></td>`;
+    else if (m==='r') h+=`<td class="k"></td>`+inp(i,'r',r.r)+`<td class="rho"></td>`;
+    else h+=`<td class="k"></td>`+inp(i,'dv',r.dv)+inp(i,'i',r.i,s.ipad||'')+`<td class="rho"></td>`;
+    h+=`<td><button class="btn sm dan" data-sdel="${i}" aria-label="Remover linha">×</button></td></tr>`; });
+  if (!s.rows.length) h+=`<tr><td colspan="${cols.length}" class="hint" style="padding:12px">Nenhuma linha. Use “Tabela padrão AB/2” ou “+ Linha”.</td></tr>`;
+  h+='</tbody>'; $('#sevTable').innerHTML=h; refreshSev();
+}
+$('#sevTable').addEventListener('click', e=>{ const b=e.target.closest('[data-sdel]'); if(!b) return; P().sev.rows.splice(+b.dataset.sdel,1); touch(); renderSevTable(); });
+$('#sevTable').addEventListener('keydown', e=>{ if(e.key!=='Enter') return; const el=e.target; if(el.dataset.sr===undefined) return; e.preventDefault(); const ins=$$(`#sevTable input[data-k="${el.dataset.k}"]`); const i=ins.indexOf(el); if(ins[i+1]){ins[i+1].focus();ins[i+1].select();} else el.blur(); });
+function sevScale(rs){ const v=rs.filter(r=>isFinite(r.rho)&&r.rho>0).map(r=>r.rho); if(!v.length) return makeScale(10,1000); let a=Math.min(...v), b=Math.max(...v); if(b<=a) b=a*1.5; return makeScale(a,b); }
+function refreshSev(){
+  const rs=calcSev(); const sc=sevScale(rs);
+  rs.forEach(r=>{ const tr=$(`#sevTable tr[data-sr="${r.idx}"]`); if(!tr) return; const kc=tr.querySelector('td.k'); if(kc) kc.textContent=fmt(r.K,2);
+    const rc=tr.querySelector('td.rho'); if(rc) rc.innerHTML = isFinite(r.rho)? (rc.classList.contains('cor')? `<span class="sw" style="background:${sc.css(r.rho)};width:44px"></span>` : `<span class="sw" style="background:${sc.css(r.rho)}"></span>${fmt(r.rho,2)}`) : '<span style="color:#bbb">—</span>';
+    const iIn=tr.querySelector('input[data-k="i"]'); if(iIn) iIn.placeholder=P().sev.ipad||''; });
+  $('#sevChart').innerHTML = sevSVG(rs, sc) + legendHTML(sc);
+}
+function sevSVG(rs, sc){
+  const W=760, H=420, ml=60, mr=150, mt=30, mb=46;
+  const pts=rs.filter(r=>isFinite(r.rho)&&r.rho>0&&r.ab2>0).sort((a,b)=>a.ab2-b.ab2);
+  const allAb=rs.filter(r=>r.ab2>0).map(r=>r.ab2);
+  const xmin=Math.pow(10,Math.floor(Math.log10(Math.min(1,...(allAb.length?allAb:[1]))))), xmax=Math.pow(10,Math.ceil(Math.log10(Math.max(100,...(allAb.length?allAb:[100])))));
+  const rv=pts.map(p=>p.rho); const ymin=Math.pow(10,Math.floor(Math.log10(rv.length?Math.min(...rv):1))), ymax=Math.pow(10,Math.ceil(Math.log10(rv.length?Math.max(...rv)*1.01:1000)));
+  const X=v=>ml+(Math.log10(v)-Math.log10(xmin))/(Math.log10(xmax)-Math.log10(xmin))*(W-ml-mr);
+  const Y=v=>mt+(1-(Math.log10(v)-Math.log10(ymin))/((Math.log10(ymax)-Math.log10(ymin))||1))*(H-mt-mb);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica,Arial,sans-serif"><rect width="${W}" height="${H}" fill="#fff"/>`;
+  s+=`<text x="${ml}" y="18" font-size="15" font-weight="700" fill="#23404f">${esc(P().sev.nome||'SEV')}${P().sev.local?` <tspan font-weight="400" font-size="12" fill="#66707a">· ${esc(P().sev.local)}</tspan>`:''}</text>`;
+  for(let e=Math.log10(xmin);e<=Math.log10(xmax);e++){ for(let m=1;m<10;m++){ const v=m*Math.pow(10,e); if(v>xmax) break; const x=X(v); s+=`<line x1="${x}" x2="${x}" y1="${mt}" y2="${H-mb}" stroke="${m===1?'#cfcac0':'#eeebe4'}"/>`; if(m===1) s+=`<text x="${x}" y="${H-mb+15}" font-size="11" text-anchor="middle" fill="#66707a">${fmt(v,v<1?1:0)}</text>`; } }
+  for(let e=Math.log10(ymin);e<=Math.log10(ymax);e++){ for(let m=1;m<10;m++){ const v=m*Math.pow(10,e); if(v>ymax) break; const y=Y(v); s+=`<line x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}" stroke="${m===1?'#cfcac0':'#eeebe4'}"/>`; if(m===1) s+=`<text x="${ml-6}" y="${y+4}" font-size="11" text-anchor="end" fill="#66707a">${fmt(v,v<1?1:0)}</text>`; } }
+  s+=`<text x="${(ml+W-mr)/2}" y="${H-8}" font-size="11" text-anchor="middle" fill="#66707a">AB/2 (m)</text><text transform="translate(14 ${(mt+H-mb)/2}) rotate(-90)" font-size="11" text-anchor="middle" fill="#66707a">ρa (Ω·m)</text>`;
+  // segmentos por MN (embreagem)
+  const grupos={}; pts.forEach(p=>{ (grupos[p.mn2]=grupos[p.mn2]||[]).push(p); });
+  Object.values(grupos).forEach(gp=>{ const d=gp.map((p,i)=>(i?'L':'M')+X(p.ab2).toFixed(1)+' '+Y(p.rho).toFixed(1)).join(''); s+=`<path d="${d}" fill="none" stroke="#23404f" stroke-width="2"/>`; });
+  pts.forEach(p=>{ s+=`<circle cx="${X(p.ab2)}" cy="${Y(p.rho)}" r="5.5" fill="${sc.css(p.rho)}" stroke="#23404f" stroke-width="1.2"/>`; });
+  // coluna de cores por prof. aparente
+  const cx=W-mr+50, cw=40, ct=mt, cb=H-mb; const dmax=Math.max(10,...(pts.length?pts.map(p=>p.ab2):[10]));
+  s+=`<text x="${cx+cw/2}" y="${ct-8}" font-size="11" text-anchor="middle" fill="#23404f" font-weight="700">Coluna</text>`;
+  if (pts.length){
+    const DY=d=>ct+(d/dmax)*(cb-ct);
+    const gid='sevg'+(++GID);
+    s+=`<defs><linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">`+pts.map(p=>`<stop offset="${(p.ab2/dmax*100).toFixed(2)}%" stop-color="${sc.css(p.rho)}"/>`).join('')+`</linearGradient></defs>`;
+    s+=`<rect x="${cx}" y="${ct}" width="${cw}" height="${cb-ct}" fill="url(#${gid})" stroke="rgba(0,0,0,.3)"/>`;
+    const step=niceCeil(dmax/6); for(let d=0; d<=dmax+1e-9; d+=step){ const y=DY(d); s+=`<line x1="${cx+cw}" x2="${cx+cw+5}" y1="${y}" y2="${y}" stroke="#666"/><text x="${cx+cw+8}" y="${y+4}" font-size="10" fill="#555">${fmt(d,0)} m</text>`; }
+  } else s+=`<rect x="${cx}" y="${ct}" width="${cw}" height="${cb-ct}" fill="#f3f3f3" stroke="#ccc"/>`;
+  s+=`<text x="${cx+cw/2}" y="${cb+15}" font-size="10" text-anchor="middle" fill="#66707a">prof. ≈ AB/2</text>`;
+  s+='</svg>'; return s;
+}
+
+/* ===================== exportação ===================== */
+function csvExport(){
+  const p=P(), ce=p.ce, sep=';'; const L=[];
+  L.push(['Estudo',p.nome].join(sep)); L.push(['Local',p.local].join(sep)); L.push(['Data',p.data].join(sep)); L.push(['UTM',`${p.utmE}E / ${p.utmN}N ${p.zona||''}`].join(sep));
+  L.push(['Arranjo','Gradiente','AB/2 (m)',ce.ab2,'MN (m)',ce.mn].join(sep)); L.push('');
+  ce.perfis.forEach(pf=>{ const r=calcPerfil(ce,pf);
+    L.push([`${pf.nome} – Ficha de Campo`, pf.dir?`Direção ${pf.dir}`:'', `Posição ${pf.pos||0} m`].join(sep));
+    const m=modo();
+    const hd = m==='rho' ? ['Orientação','L (m)','ρa (Ω·m)','Zona condutiva'] : m==='r' ? ['Orientação','L (m)','K','R (Ω)','ρa (Ω·m)','Zona condutiva'] : ['Orientação','L (m)','K','ΔV (mV)','I (mA)','ρa (Ω·m)','Zona condutiva'];
+    const G=georef()[pf.id]; if (G){ hd.push('UTM E','UTM N'); }
+    L.push(hd.join(sep));
+    r.rows.forEach(z=>{ const base=[z.x===0?'Centro':(z.x<0?'E':'D'), Math.abs(z.x)]; const rr=isFinite(z.rho)?fmt(z.rho,2):'', an=z.anom?'SIM':'';
+      const mid = m==='rho' ? [] : m==='r' ? [fmt(z.K,2), isFinite(z.R)?fmt(z.R,3):''] : [fmt(z.K,2), isFinite(z.dv)?fmt(z.dv,1):'', isFinite(z.I)?fmt(z.I,1):''];
+      const u = G? utmEstaca(G,z.x) : null;
+      L.push(base.concat(mid,[rr,an], u?[fUTM(u.E),fUTM(u.N)]:[]).join(sep)); });
+    L.push(''); });
+  const sv=calcSev(); if (sv.length){ L.push([p.sev.nome||'SEV', p.sev.local||''].join(sep)); L.push(['AB/2 (m)','MN/2 (m)','K','Leitura','ρa (Ω·m)'].join(sep));
+    sv.forEach(z=>{ const m=modo(); const lei = m==='rho'?'': m==='r'? (isFinite(z.R)?fmt(z.R,3)+' Ω':'') : (isFinite(z.dv)?`${fmt(z.dv,1)} mV / ${fmt(z.I,1)} mA`:'');
+      L.push([fmt(z.ab2,1),fmt(z.mn2,1),fmt(z.K,2),lei,isFinite(z.rho)?fmt(z.rho,2):''].join(sep)); }); }
+  return '﻿'+L.join('\r\n');
+}
+const fileBase = () => (P().nome||'estudo').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\-]+/g,'_').slice(0,50);
+async function salvar(nome, data, textoFallback){
+  if (DL){ try{ await DL.save({filename:nome, data}); toast('Arquivo pronto'); return; }catch(e){ if(e&&e.code==='declined') return; } }
+  // fora do Claude (arquivo offline): download direto
+  try{ const blob = data instanceof Blob ? data : new Blob([data]); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }catch(e){}
+  if (textoFallback!==undefined && !(window.claude===undefined)) showText('Copiar conteúdo', 'Se o download não começou, copie o texto abaixo.', textoFallback);
+}
+
+function gmapsCsv(){
+  const p=P(), ce=p.ce, G=georef(); const sc=curScale(); const sep=',';
+  const q=v=>{ const t=String(v??''); return /[",\n]/.test(t)? '"'+t.replace(/"/g,'""')+'"' : t; };
+  const lo=Math.log10(sc.vmin), hi=Math.log10(sc.vmax);
+  const classe=(r)=>{ if(!isFinite(r.rho)) return 'Sem leitura'; const t=(Math.log10(r.rho)-lo)/((hi-lo)||1);
+    const k = t<0.2?1 : t<0.4?2 : t<0.6?3 : t<0.8?4 : 5;
+    return ['','1 - Muito condutivo (azul escuro)','2 - Condutivo (azul)','3 - Intermediário (verde)','4 - Resistivo (laranja)','5 - Muito resistivo (vermelho)'][k]; };
+  const L=[['Nome','Latitude','Longitude','Perfil','Estaca','Resistividade (ohm.m)','Classe','Zona condutiva','UTM E','UTM N'].join(sep)];
+  let n=0;
+  ce.perfis.forEach(pf=>{ const g=G[pf.id]; if(!g) return; calcPerfil(ce,pf).rows.forEach(r=>{ const u=utmEstaca(g,r.x); const [la,lon]=ll(u.E,u.N);
+    L.push([q(`${pf.nome} - ${rotuloCurto(r.x)}`), la.toFixed(7), lon.toFixed(7), q(pf.nome), rotulo(r.x), isFinite(r.rho)?r.rho.toFixed(2):'', q(classe(r)), r.anom?'SIM':'', Math.round(u.E), Math.round(u.N)].join(sep)); n++; }); });
+  if (ce.poco && G[ce.poco.perfil]){ const pf=ce.perfis.find(x=>x.id===ce.poco.perfil); const u=utmEstaca(G[ce.poco.perfil],+ce.poco.x); const [la,lon]=ll(u.E,u.N);
+    L.push([q('POÇO - '+(p.nome||'')), la.toFixed(7), lon.toFixed(7), q(pf?pf.nome:''), rotulo(+ce.poco.x), '', 'POÇO', '', Math.round(u.E), Math.round(u.N)].join(sep)); n++; }
+  return {txt:'﻿'+L.join('\r\n'), n};
+}
+$('#btnGmaps').addEventListener('click', ()=>{ const r=gmapsCsv(); if(!r.n){ toast('Informe as coordenadas de E05 e D05 dos perfis primeiro'); return; } salvar(fileBase()+'_google_maps.csv', r.txt, r.txt); });
+$('#btnCsv').addEventListener('click', ()=>{ const t=csvExport(); salvar(fileBase()+'_ficha.csv', t, t); });
+$('#btnJson').addEventListener('click', async ()=>{ const fs=await fotosDe(P().id); const t=JSON.stringify({georesist:1, estudo:P(), fotos:fs.map(f=>({legenda:f.legenda,data:f.data,ordem:f.ordem,img:f.img}))}); salvar(fileBase()+'_backup.json', t, t.length<400000?t:undefined); });
+$('#btnPng').addEventListener('click', async ()=>{ const cv=await buildPng(true); cv.toBlob(b=>{ if(b) salvar(fileBase()+'_desenhos.png', b); }, 'image/png'); });
+$('#fileImp').addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>importar(rd.result); rd.readAsText(f); e.target.value=''; });
+$('#btnColar').addEventListener('click', ()=>showText('Colar backup','Cole aqui o conteúdo do arquivo JSON de backup.','', t=>importar(t)));
+function importar(txt){
+  try{ const o=JSON.parse(txt); const p=o.estudo||o; if(!p||!p.ce||!p.sev) throw 0; p.id=uid(); p.updatedAt=Date.now(); p.nome=(p.nome||'Importado'); p.fotosExemplo=false; S.projects[p.id]=p; S.cur=p.id; touch(); (o.fotos||[]).forEach((f,i)=>{ const nf={id:uid(),projeto:p.id,ordem:f.ordem??i,legenda:f.legenda||'',data:f.data||'',img:f.img,updatedAt:Date.now()}; fotoPut(nf).then(()=>cloudFoto(nf)); }); renderAll(); toast('Estudo importado'); }
+  catch(e){ toast('Arquivo inválido'); }
+}
+function svgToImg(svgStr){ return new Promise(res=>{ const img=new Image(); const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml'})); img.onload=()=>{ res(img); setTimeout(()=>URL.revokeObjectURL(url),1000); }; img.onerror=()=>res(null); img.src=url; }); }
+async function buildPng(full){
+  const p=P(), ce=p.ce, sc=curScale(); const S2=2; const W=900;
+  const mapCv=document.createElement('canvas'); const dim=desenharMapa(mapCv,S2,900);
+  const svgs=ce.perfis.map(pf=>perfilSVG(ce,pf,sc)); const imgs=[]; for(const s of svgs) imgs.push(await svgToImg(s.replace('class="chart"','width="760" height="300"')));
+  const rs=calcSev(); let sevImg=null; if (rs.some(r=>isFinite(r.rho))) sevImg=await svgToImg(sevSVG(rs,sevScale(rs)).replace('class="chart"','width="760" height="420"'));
+  const fots=await fotosImgs(p.id); const cw=(W-60)/2, ch=cw*0.75; const fh = fots.length? 40+Math.ceil(fots.length/2)*(ch+44) : 0;
+  const head=96; const ph=imgs.length*(300*W/760+12); const sh=sevImg?(420*W/760+12):0;
+  const H=head+dim.H+16+ph+sh+fh+30;
+  const cv=$('#pngPrev'); cv.width=W*S2; cv.height=H*S2; const g=cv.getContext('2d'); g.setTransform(S2,0,0,S2,0,0);
+  g.fillStyle='#fff'; g.fillRect(0,0,W,H);
+  g.fillStyle='#23404f'; g.fillRect(0,0,W,6);
+  g.fillStyle='#23404f'; g.font='bold 18px Helvetica'; g.fillText('Estudo geofísico — eletrorresistividade', 20, 34);
+  g.font='13px Helvetica'; g.fillStyle='#333'; g.fillText(`${p.nome||''}${p.local?' · '+p.local:''}${p.data?' · '+p.data.split('-').reverse().join('/'):''}`, 20, 56);
+  g.fillStyle='#66707a'; g.fillText(`${p.utmE&&p.utmN?`UTM ${p.utmE}E / ${p.utmN}N ${p.zona||''} · `:''}Arranjo gradiente AB/2 = ${ce.ab2} m, MN = ${ce.mn} m${p.resp?' · '+p.resp:''}`, 20, 76);
+  let y=head; g.drawImage(mapCv,0,y,dim.W,dim.H); y+=dim.H+16;
+  imgs.forEach(im=>{ if(im){ g.drawImage(im,(W-W)/2,y,W,300*W/760); } y+=300*W/760+12; });
+  if (sevImg){ g.drawImage(sevImg,0,y,W,420*W/760); y+=420*W/760+12; }
+  if (fots.length){ g.fillStyle='#23404f'; g.font='bold 15px Helvetica'; g.textAlign='left'; g.fillText('Registro fotográfico',20,y+22); y+=40;
+    fots.forEach((f,i)=>{ const cx=20+(i%2)*(cw+20), cy=y+Math.floor(i/2)*(ch+44); const r=Math.max(cw/f.im.width, ch/f.im.height); const sw=cw/r, sh2=ch/r;
+      g.drawImage(f.im,(f.im.width-sw)/2,(f.im.height-sh2)/2,sw,sh2,cx,cy,cw,ch); g.strokeStyle='#ccc'; g.strokeRect(cx,cy,cw,ch);
+      g.fillStyle='#333'; g.font='12px Helvetica'; let t=`Foto ${i+1}${f.legenda?' – '+f.legenda:''}`; while(g.measureText(t).width>cw && t.length>10) t=t.slice(0,-2); if(t!==`Foto ${i+1}${f.legenda?' – '+f.legenda:''}`) t+='…'; g.fillText(t,cx,cy+ch+17); });
+    y+=Math.ceil(fots.length/2)*(ch+44); }
+  g.fillStyle='#999'; g.font='10px Helvetica'; g.fillText('Gerado no GeoResist · azul = condutivo (baixa resistividade) · vermelho = resistivo', 20, H-12);
+  return cv;
+}
+
+
+/* ===================== fotos (IndexedDB + nuvem) ===================== */
+const FOTOS_EXEMPLO=[];
+let IDBP=null;
+function idb(){ if(IDBP) return IDBP; IDBP=new Promise((res,rej)=>{ try{ const r=indexedDB.open('georesist',1); r.onupgradeneeded=()=>{ const st=r.result.createObjectStore('fotos',{keyPath:'id'}); st.createIndex('projeto','projeto'); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); return IDBP; }
+const MEMF={}; // fallback em memória
+async function fotosDe(pid){ try{ const db=await idb(); return await new Promise((res,rej)=>{ const q=db.transaction('fotos').objectStore('fotos').index('projeto').getAll(pid); q.onsuccess=()=>res(q.result.sort((a,b)=>(a.ordem||0)-(b.ordem||0))); q.onerror=()=>rej(q.error); }); }catch(e){ return Object.values(MEMF).filter(f=>f.projeto===pid); } }
+async function fotoGet(id){ try{ const db=await idb(); return await new Promise(res=>{ const q=db.transaction('fotos').objectStore('fotos').get(id); q.onsuccess=()=>res(q.result); q.onerror=()=>res(null); }); }catch(e){ return MEMF[id]||null; } }
+async function fotoPut(f){ try{ const db=await idb(); await new Promise((res,rej)=>{ const t=db.transaction('fotos','readwrite'); t.objectStore('fotos').put(f); t.oncomplete=res; t.onerror=()=>rej(t.error); }); }catch(e){ MEMF[f.id]=f; } }
+async function fotoDel(id){ try{ const db=await idb(); await new Promise(res=>{ const t=db.transaction('fotos','readwrite'); t.objectStore('fotos').delete(id); t.oncomplete=res; t.onerror=res; }); }catch(e){ delete MEMF[id]; } }
+function reduzir(src){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>{ let max=1280, q=0.72, out='';
+    for (let k=0;k<6;k++){ const sc=Math.min(1,max/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc); c.getContext('2d').drawImage(im,0,0,c.width,c.height); out=c.toDataURL('image/jpeg',q); if (out.length<235000) break; max=Math.round(max*0.85); q=Math.max(0.5,q-0.05); }
+    res(out); }; im.onerror=rej; im.src=src; }); }
+async function addArquivos(files){
+  const p=P(); const ex=await fotosDe(p.id); let ordem=ex.length; let n=0;
+  for (const f of files){ if(!/^image\//.test(f.type)) continue;
+    const url=URL.createObjectURL(f); try{ const img=await reduzir(url);
+      const d=new Date(f.lastModified||Date.now()); const foto={id:uid(), projeto:p.id, ordem:ordem++, legenda:'', data:d.toISOString().slice(0,16), img, updatedAt:Date.now()};
+      await fotoPut(foto); cloudFoto(foto); n++; }catch(e){} finally{ URL.revokeObjectURL(url); } }
+  if (n) toast(n===1?'Foto adicionada':`${n} fotos adicionadas`); else toast('Nenhuma imagem válida');
+  renderFotos();
+}
+$('#fotoCam').addEventListener('change', e=>{ addArquivos([...e.target.files]); e.target.value=''; });
+$('#fotoGal').addEventListener('change', e=>{ addArquivos([...e.target.files]); e.target.value=''; });
+async function renderFotos(){
+  const p=P(); if(!p) return; await semearExemplo(p);
+  const fs=await fotosDe(p.id); const g=$('#fotoGrid');
+  $('#fotoInfo').textContent = fs.length? `${fs.length} foto${fs.length>1?'s':''} neste estudo.` : 'Nenhuma foto ainda.';
+  g.innerHTML = fs.map((f,i)=>`<div class="foto" data-fid="${f.id}"><img src="${f.img}" alt="Foto ${i+1}" data-ver="${f.id}">
+    <div class="fb"><b style="font-size:13px;color:var(--brand)">Foto ${i+1}</b><textarea data-leg="${f.id}" placeholder="Legenda (ex.: piquete do poço na estaca D10)">${esc(f.legenda||'')}</textarea>
+    <div class="meta"><span>${f.data? esc(f.data.replace('T',' ').split(' ')[0].split('-').reverse().join('/')+(f.data.includes('T')?' '+f.data.split('T')[1]:'')):''}</span>
+    <span class="row" style="gap:4px"><button class="btn sm" data-mv="${f.id}" data-d="-1" aria-label="Mover para trás">◀</button><button class="btn sm" data-mv="${f.id}" data-d="1" aria-label="Mover para frente">▶</button><button class="btn sm dan" data-fdel="${f.id}">Excluir</button></span></div></div></div>`).join('');
+}
+let legT={};
+$('#fotoGrid').addEventListener('input', async e=>{ const id=e.target.dataset.leg; if(!id) return; const v=e.target.value; clearTimeout(legT[id]); legT[id]=setTimeout(async()=>{ const f=await fotoGet(id); if(!f) return; f.legenda=v; f.updatedAt=Date.now(); await fotoPut(f); cloudFoto(f); },700); });
+$('#fotoGrid').addEventListener('click', async e=>{
+  const v=e.target.closest('[data-ver]'); if (v){ const f=await fotoGet(v.dataset.ver); if(f) lightbox(f); return; }
+  const d=e.target.closest('[data-fdel]'); if (d){ confirmBox('Excluir foto','Excluir esta foto do estudo?', async()=>{ await fotoDel(d.dataset.fdel); cloudFotoDel(d.dataset.fdel); renderFotos(); }); return; }
+  const m=e.target.closest('[data-mv]'); if (m){ const fs=await fotosDe(P().id); const i=fs.findIndex(x=>x.id===m.dataset.mv); const j=i+(+m.dataset.d); if(j<0||j>=fs.length) return; [fs[i],fs[j]]=[fs[j],fs[i]]; for (let k=0;k<fs.length;k++){ if(fs[k].ordem!==k){ fs[k].ordem=k; fs[k].updatedAt=Date.now(); await fotoPut(fs[k]); cloudFoto(fs[k]); } } renderFotos(); }
+});
+function lightbox(f){ const d=document.createElement('div'); d.className='lightbox'; d.innerHTML=`<button aria-label="Fechar">×</button><img src="${f.img}" alt=""><p>${esc(f.legenda||'')}</p>`; d.addEventListener('click',()=>d.remove()); document.body.appendChild(d); }
+async function semearExemplo(p){
+  if (!p.fotosExemplo || p.fotosSemeadas) return; p.fotosSemeadas=true; touch();
+  for (let i=0;i<FOTOS_EXEMPLO.length;i++){ const f={id:uid(), projeto:p.id, ordem:i, legenda:FOTOS_EXEMPLO[i].legenda, data:'2026-10-09T10:04', img:FOTOS_EXEMPLO[i].img, updatedAt:Date.now()}; await fotoPut(f); cloudFoto(f); }
+}
+// nuvem: um documento por foto
+const fotoQ={};
+function cloudFoto(f){ if(!DB||!UID) return; const prev=fotoQ[f.id]||Promise.resolve();
+  fotoQ[f.id]=prev.then(()=>DB.collection('data/users/'+UID).doc('foto_'+f.id).set({tipo:'foto', id:f.id, projeto:f.projeto, ordem:f.ordem||0, legenda:f.legenda||'', data:f.data||'', img:f.img, updatedAt:f.updatedAt||Date.now()})).catch(e=>{ if(e&&e.code==='quota_exceeded') toast('Nuvem cheia: algumas fotos ficaram só neste aparelho.'); }); }
+function cloudFotoDel(id){ if(!DB||!UID) return; DB.collection('data/users/'+UID).doc('foto_'+id).delete().catch(()=>{}); }
+async function syncFotos(docs){
+  const remotas={}; for (const d of docs){ const o=d.data(); if(o&&o.tipo==='foto') remotas[o.id]=o; }
+  let mudou=false;
+  for (const o of Object.values(remotas)){ if(!S.projects[o.projeto]) continue; const loc=await fotoGet(o.id); if(!loc || (o.updatedAt||0)>(loc.updatedAt||0)){ await fotoPut({id:o.id,projeto:o.projeto,ordem:o.ordem,legenda:o.legenda,data:o.data,img:o.img,updatedAt:o.updatedAt}); mudou=true; } }
+  for (const pid of Object.keys(S.projects)){ for (const f of await fotosDe(pid)){ const r=remotas[f.id]; if(!r || (f.updatedAt||0)>(r.updatedAt||0)) cloudFoto(f); } }
+  if (mudou && !$('#tab-fotos').classList.contains('hidden')) renderFotos();
+}
+async function fotosImgs(pid){ const fs=await fotosDe(pid); const out=[]; for (const f of fs){ const im=await new Promise(res=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>res(null); i.src=f.img; }); if(im) out.push({im, legenda:f.legenda||''}); } return out; }
+
+
+/* ===================== praticidade de campo ===================== */
+function latLonToUTM(lat, lon, zone){
+  const a=6378137, f=1/298.257223563, k0=0.9996, e2=f*(2-f), ep2=e2/(1-e2);
+  if (!zone) zone=Math.floor((lon+180)/6)+1;
+  const phi=lat*Math.PI/180, lam=lon*Math.PI/180, lam0=((zone-1)*6-180+3)*Math.PI/180;
+  const N=a/Math.sqrt(1-e2*Math.sin(phi)**2), T=Math.tan(phi)**2, C=ep2*Math.cos(phi)**2, A=Math.cos(phi)*(lam-lam0);
+  const M=a*((1-e2/4-3*e2*e2/64-5*e2**3/256)*phi-(3*e2/8+3*e2*e2/32+45*e2**3/1024)*Math.sin(2*phi)+(15*e2*e2/256+45*e2**3/1024)*Math.sin(4*phi)-(35*e2**3/3072)*Math.sin(6*phi));
+  const E=k0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*ep2)*A**5/120)+500000;
+  let Nn=k0*(M+N*Math.tan(phi)*(A*A/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*ep2)*A**6/720));
+  if (lat<0) Nn+=10000000;
+  return {E, N:Nn, zone};
+}
+document.addEventListener('click', e=>{
+  const b=e.target.closest('[data-gps]'); if(!b) return; e.preventDefault();
+  if (!navigator.geolocation){ toast('GPS indisponível aqui — digite as coordenadas'); return; }
+  const lado=b.dataset.gps; const old=b.textContent; b.textContent='📍 Buscando sinal…'; b.disabled=true;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    b.textContent=old; b.disabled=false;
+    const z=String(P().zona||'').match(/(\d{1,2})/); const u=latLonToUTM(pos.coords.latitude,pos.coords.longitude, z?+z[1]:0);
+    const pf=curPerf(); pf[lado==='E'?'eE':'dE']=String(Math.round(u.E)); pf[lado==='E'?'eN':'dN']=String(Math.round(u.N));
+    if (!P().zona) P().zona=u.zone+(pos.coords.latitude<0?'M':'N');
+    renderPerfFields(); refreshCETable(); renderCharts(); touch();
+    toast(`${lado}05: ${Math.round(u.E)}E / ${Math.round(u.N)}N (precisão ±${Math.round(pos.coords.accuracy)} m)`);
+  }, err=>{ b.textContent=old; b.disabled=false; toast(err && err.code===1 ? 'Permissão de localização negada — digite as coordenadas' : 'Sem sinal de GPS agora — tente de novo ou digite'); },
+  {enableHighAccuracy:true, timeout:25000, maximumAge:0});
+});
+function renderStatus(){
+  const ce=P().ce, pf=curPerf(); if(!pf) return; const r=calcPerfil(ce,pf); const tot=r.rows.length;
+  const g=georef()[pf.id]; const gpsOk = g && g.der==='pontas';
+  const susp=r.rows.filter(z=>z.susp).length;
+  const vazia=r.rows.find(z=>!isFinite(z.rho));
+  $('#ceStatus').innerHTML = `<span class="chip ${r.n===tot?'ok':''}">${r.n}/${tot} estacas</span>
+    <span class="chip ${gpsOk?'ok':'no'}">${gpsOk?'GPS ✓':'GPS pendente'}</span>
+    ${susp?`<span class="chip no">⚠ ${susp} p/ conferir</span>`:''}
+    ${ce.poco&&ce.poco.perfil===pf.id?`<span class="chip">Poço: ${rotulo(+ce.poco.x)}</span>`:''}
+    ${vazia?`<button class="btn sm" id="btnProx">➜ Próxima vazia (${rotuloCurto(vazia.x)})</button>`:''}`;
+  if (!gpsOk && !$('#pfDet').dataset.auto){ $('#pfDet').open=true; $('#pfDet').dataset.auto='1'; }
+}
+document.addEventListener('click', e=>{
+  if (e.target.id!=='btnProx') return; const pf=curPerf(); const r=calcPerfil(P().ce,pf); const v=r.rows.find(z=>!isFinite(z.rho)); if(!v) return;
+  const k = modo()==='rho'?'rho': modo()==='r'?'r':'dv'; const inp=$(`#ceTable input[data-lx="${v.x}"][data-k="${k}"]`); if(inp){ inp.scrollIntoView({block:'center'}); inp.focus(); }
+});
+// manter tela ligada
+let WL=null;
+async function telaLigada(on){
+  try{ if(on){ WL=await navigator.wakeLock.request('screen'); WL.addEventListener('release',()=>{ if(!document.hidden) $('#btnTela').classList.remove('on'); }); $('#btnTela').classList.add('on'); toast('Tela ficará ligada'); }
+    else { if(WL) await WL.release(); WL=null; $('#btnTela').classList.remove('on'); toast('Tela volta a apagar normalmente'); } }
+  catch(e){ toast('Este navegador não permite manter a tela ligada'); $('#btnTela').classList.remove('on'); }
+}
+$('#btnTela').addEventListener('click', ()=>telaLigada(!$('#btnTela').classList.contains('on')));
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && $('#btnTela').classList.contains('on') && (!WL||WL.released)) telaLigada(true); });
+// indicador de salvo
+function marcaSalvo(){ const s=$('#saveInd'); if(!s) return; s.textContent='✓ salvo'; clearTimeout(marcaSalvo.t); marcaSalvo.t=setTimeout(()=>s.textContent='',2000); }
+// duplicar como modelo
+$('#btnDup').addEventListener('click', ()=>{
+  const o=P(); const n=novoEstudo('Novo estudo'); n.modo=o.modo; n.zona=o.zona; n.resp=o.resp; n.equip=o.equip;
+  Object.assign(n.ce,{ab2:o.ce.ab2,mn:o.ce.mn,step:o.ce.step,half:o.ce.half,limiar:o.ce.limiar});
+  n.ce.perfis=o.ce.perfis.map((pf,i)=>({id:uid(),nome:pf.nome||('Perfil '+(i+1)),dir:pf.dir||'',pos:pf.pos||'0',ipad:pf.ipad||'',geo:'pontas',lei:{}})); n.ce.curPerf=n.ce.perfis[0].id;
+  S.projects[n.id]=n; S.cur=n.id; touch(); renderAll(); showTab('proj'); setTimeout(()=>{ const i=$('[data-p="nome"]'); i.focus(); i.select(); },60);
+  toast('Novo estudo criado com o mesmo arranjo e perfis (sem leituras)');
+});
+
+
+/* ===================== relatório técnico (.docx) ===================== */
+const TXT_PADRAO = {
+  apres: `O município de Guaramiranga situa-se na região do maciço de Baturité, porção nordeste do estado do Ceará, limitando-se com os municípios de Caridade, Pacoti, Mulungu e Baturité. Compreende uma área de 95 km², localizada nas cartas topográficas Canindé (Folha SB.24-V-B-III) e Baturité (Folha SB.24-X-A-I).
+
+O acesso ao município, a partir de Fortaleza, pode ser feito através das rodovias Fortaleza/Pacoti, Fortaleza/Baturité ou Fortaleza/Canindé. Demais cidades, vilas, lugarejos, sítios e fazendas do município estão interligados por estradas asfaltadas, calçadas e/ou carroçáveis, as quais permitem franco acesso durante todo o ano.`,
+  fisio: `Nos atlas do IPLANCE (1997) e da SRH–CE (Plano Estadual dos Recursos Hídricos, 1992) verifica-se que o clima do município apresenta temperaturas entre os extremos de 16 °C, no inverno, e 27 °C, no verão. A precipitação pluviométrica média anual varia entre 1.300 e 1.600 mm. O balanço hídrico mostra excesso de precipitação sobre a evaporação nos meses de fevereiro a junho.
+
+A paisagem local tem formas em cristas e colinas, por se tratar de um maciço residual dissecado. As altitudes são variáveis entre 500 e 900 metros. Os solos ali encontrados são do tipo podzólico, e a vegetação abrange desde a mata úmida, serrana (floresta subperenifólia tropical plúvio-nebular), mata seca (floresta subcaducifólia tropical pluvial) e caatinga arbustiva densa, a oeste.
+
+O município de Guaramiranga apresenta um quadro geológico simples, observando-se um predomínio de rochas do embasamento cristalino de idade pré-cambriana, representadas por gnaisses e migmatitos. Sobre esse substrato repousam coberturas aluvionares, de idade quaternária, encontradas ao longo dos principais cursos d’água que drenam o município.`,
+  superf: `O município de Guaramiranga está inserido na região hidrográfica da bacia Metropolitana. Como principais drenagens superficiais pode-se mencionar o riacho Candeia e o rio Aracoiaba. Merece destaque ainda o rio Pacoti, que tem nesse município suas cabeceiras. Não há no município açudes de grande porte. A CAGECE realiza o abastecimento da sede municipal, através de dois poços amazonas, atendendo 100% da população urbana.`,
+  subt: `No município de Guaramiranga pode-se distinguir dois domínios hidrogeológicos distintos: rochas cristalinas e depósitos aluvionares.
+
+As rochas cristalinas predominam totalmente na área e representam o que é denominado comumente de “aquífero fissural”. Como basicamente não existe uma porosidade primária nesse tipo de rocha, a ocorrência da água subterrânea é condicionada por uma porosidade secundária representada por fraturas e fendas, o que se traduz por reservatórios aleatórios, descontínuos e de pequena extensão. Dentro deste contexto, em geral, as vazões produzidas por poços são pequenas e a água, em função da falta de circulação e dos efeitos do clima semiárido é, na maior parte das vezes, salinizada. Essas condições atribuem um potencial hidrogeológico baixo para as rochas cristalinas sem, no entanto, diminuir sua importância como alternativa de abastecimento em casos de pequenas comunidades ou como reserva estratégica em períodos prolongados de estiagem.
+
+Os depósitos aluvionares são representados por sedimentos areno-argilosos recentes, que ocorrem margeando as calhas dos principais rios e riachos que drenam a região, e apresentam, em geral, uma boa alternativa como manancial, tendo uma importância relativa alta do ponto de vista hidrogeológico, principalmente em regiões semiáridas com predomínio de rochas cristalinas. Normalmente, a alta permeabilidade dos termos arenosos compensa as pequenas espessuras, produzindo vazões significativas.`
+};
+const EMPRESA_PADRAO = { nome:'GEO system – Engenharia, Geologia e Meio Ambiente LTDA', end:'Rua Eusébio de Queiroz, 101 – Eusébio Center – Sala 216 – Eusébio / CE', fones:'(85) 4108 0025 – (85) 9 9982 8681', cnpj:'10.157.651 / 0001 - 43', site:'www.geosystemgma.com.br',
+  respNome:'Lauriston Ferreira Gomes Neto', respTit:'Geólogo / MSc Hidrogeologia', respCrea:'CREA / CE 11.155 - D' };
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function cfgEmpresa(){ S.cfg=S.cfg||{}; S.cfg.empresa=Object.assign({}, EMPRESA_PADRAO, S.cfg.empresa||{}); return S.cfg.empresa; }
+function relDe(p){
+  p.rel=p.rel||{};
+  const r=p.rel;
+  if (r.apres===undefined){ // textos: copia do estudo mais recente que tenha textos, senão modelo
+    const outro=Object.values(S.projects).filter(x=>x!==p && x.rel && x.rel.apres!==undefined).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+    const base = outro? outro.rel : TXT_PADRAO;
+    ['apres','fisio','superf','subt'].forEach(k=>r[k]=base[k]);
+    ['prof','diam','perf1','perf2','tub','horas','cimento'].forEach(k=>{ if(outro && outro.rel[k]!==undefined) r[k]=outro.rel[k]; });
+  }
+  const def={ cliente:'', prof:'80,00 a 100,00', diam:'6”', perf1:'De 0,00 a 20,00 m – Ø 12”', perf2:'De 20,00 a 80,00 m – Ø 6”',
+    tub:'Deverão ser usados tubos e filtros de PVC Tipo Geomecânico leve de 6” (seis polegadas) para toda seção perfurada.', horas:'6',
+    cimento:'1:2:2', ceExt:'', ceProf:'', sevExt:'', sevProf:'', obs:'', poE:'', poN:'' };
+  Object.keys(def).forEach(k=>{ if(r[k]===undefined) r[k]=def[k]; });
+  return r;
+}
+function relAuto(p){
+  const ce=p.ce, G=georef(); const a={};
+  a.cliente=(p.nome||'').replace(/\s*\(exemplo\)\s*/i,'').trim();
+  let E=num(p.utmE), N=num(p.utmN);
+  if (ce.poco && G[ce.poco.perfil]){ const u=utmEstaca(G[ce.poco.perfil],+ce.poco.x); E=u.E; N=u.N; }
+  a.poE=isFinite(E)?String(Math.round(E)):''; a.poN=isFinite(N)?String(Math.round(N)):'';
+  const ab2=num(ce.ab2); a.ceExt=isFinite(ab2)?fmt(2*ab2,0)+' m':''; a.ceProf=isFinite(ab2)?'≈ '+fmt(ab2*2/3,0)+' m':'';
+  const sv=calcSev().filter(z=>isFinite(z.rho)); const mx=sv.length?Math.max(...sv.map(z=>z.ab2)):NaN;
+  a.sevExt=isFinite(mx)?fmt(2*mx,0)+' m':''; a.sevProf=isFinite(mx)?'≈ '+fmt(mx,0)+' m':'';
+  a.obs=obsAuto(p);
+  return a;
+}
+function ladoExt(x){ return x===0?'CENTRO':(x<0?'ESQUERDA':'DIREITA'); }
+function obsAuto(p){
+  const ce=p.ce; if(!ce.poco) return '';
+  const idx=ce.perfis.findIndex(x=>x.id===ce.poco.perfil); if(idx<0) return '';
+  const x=+ce.poco.x; const temSev=calcSev().some(z=>isFinite(z.rho));
+  return `Apresentou-se uma anomalia geoelétrica (Estaca ${Math.abs(x)} – ${ladoExt(x)}) NO PERFIL ${String(idx+1).padStart(2,'0')} associada à zona condutiva causada pela presença de fissuras transversais no embasamento cristalino – conforme mostram as leituras acima do caminhamento elétrico${temSev?' e da sondagem elétrica vertical':''}. Recomenda-se a perfuração do poço tubular profundo seccionando esta zona condutiva, conforme piquetado no local do estudo.`;
+}
+const RELCAMPOS=[ // [chave, rótulo, tipo]
+  ['cliente','Cliente (capa)','t'],['poE','Coordenada do poço – UTM E','t'],['poN','Coordenada do poço – UTM N','t'],
+  ['prof','Profundidade recomendada (m)','t'],['diam','Diâmetro do poço','t'],['perf1','Perfuração – trecho 1','t'],['perf2','Perfuração – trecho 2','t'],
+  ['tub','Tubulação','a'],['horas','Teste de vazão – período mínimo (h)','t'],['cimento','Traço da cimentação','t'],
+  ['ceExt','Caminhamento – extensão','t'],['ceProf','Caminhamento – prof. de investigação','t'],['sevExt','SEV – extensão','t'],['sevProf','SEV – prof. de investigação','t'],
+  ['apres','1.0 Apresentação – texto do município','a'],['fisio','2.0 Aspectos fisiográficos','a'],['superf','3.1 Águas superficiais','a'],['subt','3.2 Águas subterrâneas','a'],
+  ['obs','Observação do anexo 6.1 (anomalia)','a']
+];
+const EMPCAMPOS=[['respNome','Responsável técnico'],['respTit','Título (ex.: Geólogo / MSc Hidrogeologia)'],['respCrea','Registro (CREA)'],['nome','Empresa'],['end','Endereço'],['fones','Telefones'],['cnpj','CNPJ'],['site','Site']];
+function renderRelForm(){
+  const p=P(); if(!p) return; const r=relDe(p); const a=relAuto(p); const e=cfgEmpresa();
+  $('#relForm').innerHTML = `<div class="grid">${RELCAMPOS.map(([k,l,t])=>{
+      const ph = a[k]!==undefined && a[k]!=='' ? `automático: ${a[k]}` : '';
+      return t==='a' ? `<label class="f" style="grid-column:1/-1">${l}<textarea data-rel="${k}" rows="${k==='obs'||k==='tub'?3:6}" placeholder="${esc(ph)}">${esc(r[k]||'')}</textarea></label>`
+                     : `<label class="f">${l}<input data-rel="${k}" value="${esc(r[k]||'')}" placeholder="${esc(ph)}"></label>`; }).join('')}</div>
+    <h3>Empresa e responsável (vale para todos os estudos)</h3>
+    <div class="grid">${EMPCAMPOS.map(([k,l])=>`<label class="f">${l}<input data-emp="${k}" value="${esc(e[k]||'')}"></label>`).join('')}</div>
+    <p class="hint">Campos vazios usam o valor automático (mostrado em cinza). Os textos do município vêm do último estudo editado — revise ao mudar de município.</p>`;
+}
+document.addEventListener('input', e=>{
+  const el=e.target;
+  if (el.dataset.rel){ const r=relDe(P()); r[el.dataset.rel]=el.value; touch(); }
+  else if (el.dataset.emp){ cfgEmpresa()[el.dataset.emp]=el.value; saveLocal(); }
+});
+
+/* ---------- docx: XML ---------- */
+const X = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function R(t,o={}){ const pr=`${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.caps?'<w:caps/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}${o.sz?`<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>`:''}${o.u?'<w:u w:val="single"/>':''}${o.sup?'<w:vertAlign w:val="superscript"/>':''}`;
+  return String(t).split('\n').map((ln,i)=>`${i?'<w:r><w:br/></w:r>':''}<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}<w:t xml:space="preserve">${X(ln)}</w:t></w:r>`).join(''); }
+function Pa(content,o={}){
+  const runs = Array.isArray(content)? content.map(c=>typeof c==='string'?R(c,o.r||{}):R(c[0],c[1]||{})).join('') : (typeof content==='string'? R(content,o.r||{}) : '');
+  const ppr=`${o.style?`<w:pStyle w:val="${o.style}"/>`:''}${o.keep?'<w:keepNext/>':''}${o.brk?'<w:pageBreakBefore/>':''}${o.border?'<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="000000"/></w:pBdr>':''}<w:spacing w:before="${o.before??0}" w:after="${o.after??160}" w:line="${o.line??360}" w:lineRule="auto"/>${o.ind?`<w:ind w:left="${o.ind}" w:hanging="${o.hang||0}"/>`:''}${o.first?`<w:ind w:firstLine="${o.first}"/>`:''}<w:jc w:val="${o.jc||'both'}"/>`;
+  return `<w:p><w:pPr>${ppr}</w:pPr>${runs}${o.raw||''}</w:p>`;
+}
+const PB = () => '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+function textoPar(t){ return String(t||'').split(/\n\s*\n/).map(s=>s.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean).map(s=>Pa(s,{first:709})).join(''); }
+function cel(t,o={}){ // o: w, fill, b, color, jc, vm ('restart'|'continue'), sz
+  const tc=`<w:tcPr><w:tcW w:w="${o.w||1500}" w:type="dxa"/>${o.span?`<w:gridSpan w:val="${o.span}"/>`:''}${o.vm?`<w:vMerge${o.vm==='restart'?' w:val="restart"':''}/>`:''}${o.fill?`<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>`:''}<w:vAlign w:val="center"/></w:tcPr>`;
+  return `<w:tc>${tc}${Pa(o.vm==='continue'?'':String(t),{jc:o.jc||'center',after:40,before:40,line:240,r:{b:o.b,color:o.color,sz:o.sz||18}})}</w:tc>`;
+}
+function tabela(linhas, larguras, o={}){
+  const tot=larguras.reduce((a,b)=>a+b,0);
+  const bd=`<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="single" w:sz="6" w:space="0" w:color="${o.cor||'000000'}"/>`).join('')}</w:tblBorders>`;
+  return `<w:tbl><w:tblPr><w:tblW w:w="${tot}" w:type="dxa"/><w:jc w:val="center"/>${o.semBorda?'':bd}<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${larguras.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${
+    linhas.map(l=>{ let col=0; return `<w:tr>${l.map(c=>{ const o=typeof c==='object'?c:{}; const sp=o.span||1; const w=larguras.slice(col,col+sp).reduce((a,b)=>a+b,0); col+=sp; return cel(c.t??c, Object.assign({},o,{w})); }).join('')}</w:tr>`; }).join('')}</w:tbl>`;
+}
+let IMGN=0;
+function imgXml(rid, cxCm, cyCm){ const cx=Math.round(cxCm*360000), cy=Math.round(cyCm*360000); const id=++IMGN;
+  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="Imagem ${id}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${id}" name="img${id}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`; }
+
+/* ---------- zip (sem compressão) ---------- */
+const CRCT=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRCT[(c^u[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zip(files){ // [{name, data:Uint8Array}]
+  const enc=new TextEncoder(); const parts=[]; const central=[]; let off=0;
+  for (const f of files){ const nm=enc.encode(f.name), d=f.data, crc=crc32(d);
+    const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,0,true); h.setUint16(12,0x21,true); h.setUint32(14,crc,true); h.setUint32(18,d.length,true); h.setUint32(22,d.length,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer), nm, d);
+    const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,0,true); c.setUint16(14,0x21,true); c.setUint32(16,crc,true); c.setUint32(20,d.length,true); c.setUint32(24,d.length,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer), nm); off+=30+nm.length+d.length; }
+  const csz=central.reduce((a,b)=>a+b.length,0);
+  const e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csz,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+const b64u8 = d => { const s=atob(d.split(',')[1]); const u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+async function canvasPng(cv){ return b64u8(cv.toDataURL('image/png')); }
+async function svgPng(svg, w, h){ const im=await svgToImg(svg.replace('class="chart"',`width="${w}" height="${h}"`)); const c=document.createElement('canvas'); c.width=w*2; c.height=h*2; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); if(im) g.drawImage(im,0,0,c.width,c.height); return {u:await canvasPng(c), w, h}; }
+
+/* ---------- montagem ---------- */
+async function gerarRelatorio(){
+  const p=P(), ce=p.ce, r=relDe(p), a=relAuto(p), e=cfgEmpresa(); const v=k=> (r[k]!==undefined && String(r[k]).trim()!=='') ? r[k] : (a[k]||'');
+  IMGN=0; const midia=[]; const rel=[]; const addImg=(u,ext)=>{ const n=midia.length+1; const rid='rIdImg'+n; midia.push({name:`word/media/img${n}.${ext}`, data:u}); rel.push(`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img${n}.${ext}"/>`); return rid; };
+  const local=p.local||''; const cidade=local.split('/')[0].trim();
+  const d=p.data? new Date(p.data+'T12:00') : new Date();
+  const mesAno=`${MESES[d.getMonth()][0].toUpperCase()+MESES[d.getMonth()].slice(1)} de ${d.getFullYear()}`;
+  const dataExt=`${String(d.getDate()).padStart(2,'0')} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+  const cliente=v('cliente');
+  let B='';
+  // CAPA
+  B+=Pa('',{after:1200})+Pa([['RELATÓRIO TÉCNICO',{b:true,u:true,sz:32}]],{jc:'center',after:1600});
+  B+=Pa([['ESTUDO GEOFÍSICO PARA LOCAÇÃO',{b:true,sz:28}]],{jc:'center',after:60})+Pa([['DE POÇO TUBULAR PROFUNDO',{b:true,sz:28}]],{jc:'center',after:60})+Pa([['MÉTODO ELETRORRESISTIVIDADE',{b:true,sz:28}]],{jc:'center',after:1400});
+  B+=Pa([[cliente.toUpperCase(),{b:true,sz:28}]],{jc:'center',after:60})+Pa([[local,{b:true,sz:26}]],{jc:'center',after:4200});
+  B+=Pa([[`${cidade}, ${mesAno}`,{b:true,i:true,sz:20}]],{jc:'center'});
+  // SUMÁRIO
+  const temFotos=(await fotosDe(p.id)).length>0;
+  B+=PB()+Pa([['SUMÁRIO',{b:true,u:true,sz:24}]],{jc:'center',after:600});
+  const sm=[['1.0)','APRESENTAÇÃO'],['2.0)','ASPECTOS FISIOGRÁFICOS'],['3.0)','RECURSOS HÍDRICOS'],['','3.1) Águas Superficiais'],['','3.2) Águas Subterrâneas'],['4.0)','SERVIÇOS REALIZADOS'],['5.0)','CONCLUSÕES E RECOMENDAÇÕES'],['6.0)','ANEXOS'],['','6.1) Sondagem elétrica horizontal – Caminhamento Elétrico']].concat(temFotos?[['','6.2) Registro Fotográfico']]:[]);
+  sm.forEach(([n,t])=> B+= n? Pa([[n+'   '+t,{b:true,sz:20}]],{after:240,jc:'left'}) : Pa([[t,{sz:20}]],{ind:900,after:120,jc:'left'}));
+  // 1.0
+  const coord = v('poE')&&v('poN') ? ` (Coordenadas UTM: ${v('poE')}E / ${v('poN')}N)` : '';
+  B+=PB()+Pa([['1.0) APRESENTAÇÃO',{b:true}]],{after:300,jc:'left'})+textoPar(v('apres'));
+  B+=Pa([`Após a realização dos estudos geofísicos, em ${local||'—'}, conclui-se que a melhor forma de aproveitamento da água subterrânea é através da construção de um Poço Tubular Profundo com `,[`profundidade em torno de ${v('prof')} metros`,{b:true}],`, piquetado no local do empreendimento${coord}. Os estudos foram realizados no dia ${dataExt}.`],{first:709});
+  // mapa de localização (UTM) como figura
+  try{ const mc=document.createElement('canvas'); const dm=desenharMapa(mc,2,900); const rid=addImg(await canvasPng(mc),'png'); let wcm=16, hcm=wcm*dm.H/dm.W; if(hcm>12){ hcm=12; wcm=hcm*dm.W/dm.H; }
+    B+=Pa('',{jc:'center',raw:imgXml(rid,wcm,hcm),after:60,line:240})+Pa([['Figura 1 – Localização dos perfis e do poço (resistividade aparente; azul = condutivo, vermelho = resistivo).',{i:true,sz:18}]],{jc:'center'}); }catch(err){}
+  // 2.0 / 3.0
+  B+=PB()+Pa([['2.0) ASPECTOS FISIOGRÁFICOS',{b:true}]],{after:300,jc:'left'})+textoPar(v('fisio'));
+  B+=Pa([['3.0) RECURSOS HÍDRICOS',{b:true}]],{before:200,after:200,jc:'left',keep:true})+Pa([['3.1 Águas Superficiais',{b:true}]],{after:160,jc:'left',keep:true})+textoPar(v('superf'));
+  B+=Pa([['3.2 Águas Subterrâneas',{b:true}]],{before:200,after:160,jc:'left',keep:true})+textoPar(v('subt'));
+  // 4.0
+  const temSev=calcSev().some(z=>isFinite(z.rho)); const np=ce.perfis.filter(pf=>calcPerfil(ce,pf).n>0).length||ce.perfis.length;
+  const dirs=[...new Set(ce.perfis.map(pf=>pf.dir).filter(Boolean))].join(', ')||'—';
+  const H={fill:'D9D9D9',b:true}; const C=t=>({t,sz:20});
+  const lin=(rot,ce1,sev1)=> temSev? [Object.assign({t:rot},H), C(ce1), C(sev1)] : [Object.assign({t:rot},H), C(ce1)];
+  const W3 = temSev? [2600,3300,3300] : [3200,5000];
+  const linhas=[[ {t:'METODOLOGIA GEOFÍSICA APLICADA',b:true,fill:'BFBFBF',span:W3.length} ],
+    lin('Método:','Geoelétrico','Geoelétrico'),
+    lin('Equipamento:',p.equip||'Eletrorresistivímetro',p.equip||'Eletrorresistivímetro'),
+    lin('Técnicas:','Caminhamento Elétrico','Sondagem Elétrica Vertical'),
+    lin('Arranjo:','Schlumberger (gradiente)','Schlumberger'),
+    lin('Quantitativo:',`${np} perfi${np>1?'s':''}`,'1 sondagem'),
+    lin('Extensão:',v('ceExt'),v('sevExt')),
+    lin('Sentido:',dirs,'—'),
+    lin('Prof. de investigação:',v('ceProf'),v('sevProf')),
+    lin('Interpretação:','GeoResist','GeoResist'),
+    lin('Parâmetro interpretativo:','Curva de resistividade aparente','Curva de resistividade aparente')];
+  B+=PB()+Pa([['4.0) SERVIÇOS REALIZADOS',{b:true}]],{after:400,jc:'left'})+tabela(linhas,W3);
+  // 5.0
+  B+=PB()+Pa([['5.0) RECOMENDAÇÕES E CONCLUSÕES',{b:true}]],{after:300,jc:'left'});
+  B+=Pa('A construção da obra de captação, ou seja, o poço tubular profundo, deverá ser realizada obedecendo a critérios técnicos estabelecidos pela ABNT (NBR 12244) e executada por empresa devidamente registrada no CREA, tendo como responsável técnico um profissional geólogo.');
+  B+=Pa('Os trabalhos deverão seguir as especificações técnicas abaixo:');
+  const sub=t=>Pa([[t,{u:true}]],{before:200,after:120,jc:'left',keep:true});
+  B+=sub('1. PERFURAÇÃO')+Pa('A perfuração do poço deverá ser executada com sonda rotopneumática, obedecendo os seguintes diâmetros, conforme a profundidade trabalhada:')+Pa(v('perf1'),{after:0,jc:'left'})+Pa(v('perf2'),{jc:'left'});
+  B+=sub('2. TUBULAÇÃO')+Pa(v('tub'));
+  B+=sub('3. DESENVOLVIMENTO e TESTES DE VAZÃO')+Pa('Deverá ser desenvolvido com agentes químicos (Hexametafosfato de sódio), com Plug e ar comprimido, visando obter uma completa estabilização do aquífero.')+Pa(`Deverá ser feito através de bomba submersa instalada após a limpeza e desenvolvimento do poço. Os testes e medições de descargas deverão ocorrer em intervalos previamente determinados num período mínimo de ${v('horas')} horas.`);
+  B+=sub('4. CIMENTAÇÃO – LAJE DE PROTEÇÃO')+Pa(`Deverá ser feita a cimentação no espaço anular compreendido entre o revestimento e a parede do poço. Traço ${v('cimento')} (cimento : areia : brita), para fixação do revestimento e a perfeita proteção sanitária do poço.`)+Pa(`Na superfície, em torno da boca do poço, uma laje de proteção em concreto, com espessura de 15 cm e raio de 60 cm, obedecendo traço ${v('cimento')} (cimento : areia : brita 01).`);
+  B+=Pa([['Conclusões:',{b:true}]],{before:300,after:200,jc:'left',keep:true});
+  const bl=(runs)=>Pa([['•  ',{b:true}]].concat(runs),{ind:720,hang:300});
+  B+=bl([['Não existem métodos geofísicos 100% capazes de estimar quantidade e qualidade de água',{b:true}],' em ambiente desta natureza (rochas cristalinas).']);
+  B+=bl(['A quantidade e qualidade da água depende de fatores geológicos (fendas, fraturas e falhas geológicas), por isso, não definimos a quantidade nem a qualidade da água, pois o método utilizado é de sondagem indireta.']);
+  if (coord) B+=bl([['O Poço tubular profundo deverá ser construído no local piquetado com as seguintes coordenadas: ',{b:true}],`${v('poE')}E / ${v('poN')}N.`]);
+  B+=bl([[`O Poço tubular profundo deverá ser construído com profundidade em torno de ${v('prof')} metros com diâmetro de ${v('diam')} (polegadas).`,{b:true}]]);
+  B+=bl(['Recomendamos também o monitoramento dos níveis de água (NE e ND) do poço explorado, visando obter elementos dos parâmetros hidrodinâmicos que permitam, se necessário, fazer uma reavaliação das condições de exploração.']);
+  B+=Pa('',{after:900})+Pa('______________________________',{jc:'left',after:0,line:240})+Pa([[e.respNome,{b:true,sz:18}]],{jc:'left',after:0,line:240})+Pa([[e.respTit,{i:true,sz:18}]],{jc:'left',after:0,line:240})+Pa([[e.respCrea,{i:true,sz:18}]],{jc:'left',line:240});
+  // 6.0 ANEXOS
+  B+=PB()+Pa([['6.0) ANEXOS',{b:true}]],{after:240,jc:'left'})+Pa('6.1) Caminhamento elétrico',{ind:700,after:60,jc:'left'})+(temFotos?Pa('6.2) Registro Fotográfico',{ind:700,jc:'left'}):'');
+  const m=modo(); const sc=curScale();
+  for (let i=0;i<ce.perfis.length;i++){
+    const pf=ce.perfis[i]; const res=calcPerfil(ce,pf); if(!res.n) continue;
+    const titulo=Pa([[`6.1) Caminhamento Elétrico – `,{b:true}],[`${pf.nome} – Ficha de Campo`,{b:true,sz:18}]],{before:i?0:300,after:160,jc:'left',brk:i>0,keep:true});
+    const cols = m==='rho' ? ['Orientação','L (m)','ρa (Ω.m)'] : m==='r' ? ['Orientação','L (m)','K','R (Ω)','ρa (Ω.m)'] : ['Orientação','L (m)','K','ΔV (mV)','I (mA)','ρa (Ω.m)'];
+    const W = m==='rho' ? [2000,1600,2200] : m==='r' ? [1700,1200,1700,1500,1700] : [1500,1000,1500,1300,1300,1600];
+    const linhasT=[cols.map(c=>({t:c,b:true,fill:'D9D9D9'}))];
+    const grupos=[['E',res.rows.filter(z=>z.x<0)],['Centro',res.rows.filter(z=>z.x===0)],['D',res.rows.filter(z=>z.x>0)]];
+    const destaque = ce.poco && ce.poco.perfil===pf.id ? +ce.poco.x : null;
+    grupos.forEach(([g,rows])=>{ rows.forEach((z,k)=>{ const red=destaque!==null && z.x===destaque; const st=red?{fill:'FF0000',color:'FFFFFF',b:true}:{};
+        const vals = m==='rho' ? [isFinite(z.rho)?fmt(z.rho,2):''] : m==='r' ? [fmt(z.K,2), isFinite(z.R)?fmt(z.R,3):'', isFinite(z.rho)?fmt(z.rho,2):''] : [fmt(z.K,2), isFinite(z.dv)?fmt(z.dv,1):'', isFinite(z.I)?fmt(z.I,1):'', isFinite(z.rho)?fmt(z.rho,2):''];
+        linhasT.push([{t:g,b:true,vm:rows.length>1?(k?'continue':'restart'):undefined}, Object.assign({t:fmtL(Math.abs(z.x)),b:true},st)].concat(vals.map((t,j)=>Object.assign({t, color: j===vals.length-1?undefined:'1F4E9E', b:j===vals.length-1},st)))); }); });
+    B+=titulo+tabela(linhasT,W);
+    // gráfico do perfil
+    const gp=await svgPng(perfilSVG(ce,pf,sc),760,300); const rid=addImg(gp.u,'png');
+    B+=Pa('',{jc:'center',raw:imgXml(rid,16,16*300/760),before:200,after:40,line:240})+Pa([[`Figura – Resistividade aparente do ${pf.nome} (azul = condutivo, vermelho = resistivo).`,{i:true,sz:18}]],{jc:'center'});
+    const obs=v('obs'); if (obs && ((ce.poco && ce.poco.perfil===pf.id) || (!ce.poco && i===0))) B+=Pa([['OBS.: ',{b:true}],obs],{before:200});
+  }
+  if (temSev){ const rs=calcSev(); const gs=await svgPng(sevSVG(rs,sevScale(rs)),760,420); const rid=addImg(gs.u,'png');
+    B+=PB()+Pa([[`6.1) Sondagem Elétrica Vertical – ${p.sev.nome||'SEV'}`,{b:true}]],{after:160,jc:'left'});
+    const ls=[['AB/2 (m)','MN/2 (m)','K','ρa (Ω.m)'].map(c=>({t:c,b:true,fill:'D9D9D9'}))].concat(rs.filter(z=>isFinite(z.rho)).map(z=>[fmt(z.ab2,1),fmt(z.mn2,1),fmt(z.K,2),{t:fmt(z.rho,2),b:true}]));
+    B+=tabela(ls,[1800,1800,2000,2000])+Pa('',{jc:'center',raw:imgXml(rid,16,16*420/760),before:200,line:240}); }
+  // 6.2 FOTOS
+  const fs=await fotosDe(p.id);
+  if (fs.length){
+    B+=PB()+Pa([[`6.2) Registro Fotográfico do Estudo Geofísico / ${local}`,{b:true}]],{jc:'center',after:300});
+    for (let i=0;i<fs.length;i++){ const f=fs[i]; const u=b64u8(f.img); const im=await new Promise(res=>{ const x=new Image(); x.onload=()=>res(x); x.onerror=()=>res(null); x.src=f.img; }); if(!im) continue;
+      const maxW=14, maxH=10; let w=maxW, h=maxW*im.height/im.width; if (h>maxH){ h=maxH; w=maxH*im.width/im.height; }
+      const rid=addImg(u,'jpeg'); B+=Pa('',{jc:'center',raw:imgXml(rid,w,h),after:60,line:240,brk:i>0&&i%2===0,keep:true})+Pa([[`Foto ${i+1}${f.legenda?' – '+f.legenda:''}`,{sz:18}]],{jc:'center',after:400}); }
+  }
+  // página final da empresa
+  B+=PB()+Pa('',{after:2400})+Pa([[e.nome,{b:true,sz:26}]],{jc:'center',after:200})+Pa([[e.end,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[`Fones: ${e.fones}`,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[`CNPJ: ${e.cnpj}`,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[e.site,{b:true,i:true,sz:20,color:'1F4E9E'}]],{jc:'center'});
+
+  const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+  const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${B}<w:sectPr><w:headerReference w:type="default" r:id="rIdH1"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1701" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const header=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${NS}>${Pa('',{border:true,after:0,line:240})}</w:hdr>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="pt-BR"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="360" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:tblPr><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style></w:styles>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
+  const drels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rIdH1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>${rel.join('')}</Relationships>`;
+  const core=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${X('Relatório Geofísico – '+cliente+' – '+local)}</dc:title><dc:creator>${X(e.respNome)}</dc:creator></cp:coreProperties>`;
+  const enc=new TextEncoder();
+  const files=[{name:'[Content_Types].xml',data:enc.encode(ct)},{name:'_rels/.rels',data:enc.encode(rels)},{name:'word/document.xml',data:enc.encode(doc)},{name:'word/styles.xml',data:enc.encode(styles)},{name:'word/header1.xml',data:enc.encode(header)},{name:'word/_rels/document.xml.rels',data:enc.encode(drels)},{name:'docProps/core.xml',data:enc.encode(core)}].concat(midia);
+  return zip(files);
+}
+$('#btnRel').addEventListener('click', async ()=>{
+  const b=$('#btnRel'); const old=b.textContent; b.textContent='Gerando relatório…'; b.disabled=true;
+  try{ const blob=await gerarRelatorio(); const nome=('Relatorio Geofisico - '+(relAuto(P()).cliente||'estudo')+' - '+(P().local||'')).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\- ]+/g,' ').replace(/\s+/g,' ').trim()+'.docx';
+    await salvar(nome, blob); }
+  catch(err){ console.error(err); toast('Não foi possível gerar o relatório'); }
+  finally{ b.textContent=old; b.disabled=false; }
+});
+
+/* ===================== modais ===================== */
+function confirmBox(title, msg, ok){ const m=$('#modal'); $('#mTitle').textContent=title; $('#mHint').textContent=msg; $('#mText').classList.add('hidden'); $('#mOk').textContent='Confirmar'; m.classList.remove('hidden'); $('#mOk').onclick=()=>{ m.classList.add('hidden'); ok(); }; $('#mCancel').onclick=()=>m.classList.add('hidden'); }
+function showText(title, hint, text, onOk){ const m=$('#modal'); $('#mTitle').textContent=title; $('#mHint').textContent=hint; const ta=$('#mText'); ta.classList.remove('hidden'); ta.value=text; m.classList.remove('hidden');
+  $('#mOk').textContent = onOk? 'Importar' : 'Copiar';
+  $('#mOk').onclick=async()=>{ if(onOk){ m.classList.add('hidden'); onOk(ta.value); } else { try{ await navigator.clipboard.writeText(ta.value); toast('Copiado'); }catch(e){ ta.select(); toast('Selecione e copie manualmente'); } } };
+  $('#mCancel').onclick=()=>m.classList.add('hidden'); }
+
+/* ===================== início ===================== */
+function renderAll(){ renderProjSel(); bindFields(); renderPills(); renderPerfFields(); renderCETable(); renderSevTable(); renderResumo(); renderCharts(); }
+let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(renderCharts,200); });
+loadLocal(); renderAll(); try{ const lt=localStorage.getItem('georesist.tab'); if(lt && $('#tab-'+lt)) showTab(lt); }catch(e){}
+setTimeout(cloudInit, 0);
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol==='https:'){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
