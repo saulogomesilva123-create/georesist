@@ -1009,7 +1009,7 @@ function satDraw(){
   const tl=box.querySelector('.tiles'); const z=SAT.z; const [cx,cy]=wpx(SAT.lat,SAT.lon,z);
   const x0=cx-W/2, y0=cy-H/2; const n=Math.pow(2,z);
   const need=new Set();
-  const tz=Math.min(z,19); const f=Math.pow(2,z-tz); const ts=256*f; // acima de z19, amplia os tiles do z19
+  const tz=Math.min(z,17); const f=Math.pow(2,z-tz); const ts=256*f; // acima de z19, amplia os tiles do z19
   for (let ty=Math.floor(y0/ts); ty<=Math.floor((y0+H)/ts); ty++) for (let tx=Math.floor(x0/ts); tx<=Math.floor((x0+W)/ts); tx++){
     const m=Math.pow(2,tz); if (ty<0||ty>=m) continue; const wx=((tx%m)+m)%m; const key=tz+'/'+ty+'/'+wx; need.add(key);
     let im=tl.querySelector(`img[data-k="${key}"]`);
