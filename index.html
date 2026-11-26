@@ -1149,23 +1149,30 @@ async function gerarKmz(){
   const r=relAuto(p), rr=relDe(p); const prof=(rr.prof&&String(rr.prof).trim())||r.prof||'';
   let st='', pm='';
   st+=`<Style id="poco"><IconStyle><scale>1.6</scale><Icon><href>https://maps.google.com/mapfiles/kml/paddle/red-stars.png</href></Icon><hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/></IconStyle><LabelStyle><scale>1.2</scale><color>ff00ffff</color></LabelStyle></Style>`;
-  st+=`<Style id="linha"><LineStyle><color>ffffffff</color><width>3</width></LineStyle></Style><Style id="linhaP"><LineStyle><color>bbffffff</color><width>2</width></LineStyle></Style>`;
+  st+=`<Style id="linha"><LineStyle><color>ffffffff</color><width>4</width></LineStyle></Style><Style id="linhaP"><LineStyle><color>ccffffff</color><width>3</width></LineStyle></Style>`;
   const usados={};
   const folders=D.lines.map(L=>{ const pf=L.pf;
     const est=D.est.filter(o=>o.pf===pf).map(o=>{ const rgb=isFinite(o.rho)? rampRGB(sc.t(o.rho)) : [150,150,150]; const id='e'+kmlCor(rgb).slice(2)+(o.anom?'a':'');
-      if(!usados[id]){ usados[id]=1; st+=`<Style id="${id}"><IconStyle><color>${kmlCor(rgb)}</color><scale>${o.anom?1.1:0.8}</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle><LabelStyle><scale>0.7</scale></LabelStyle></Style>`; }
+      if(!usados[id]){ usados[id]=1; st+=`<Style id="${id}"><IconStyle><color>${kmlCor(rgb)}</color><scale>${o.anom?1.3:1.0}</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle><LabelStyle><scale>0.7</scale></LabelStyle></Style>`; }
       return `<Placemark><name>${X(rotuloCurto(o.x))}</name><description>${DS(`${pf.nome} · estaca ${rotulo(o.x)}\nρa = ${isFinite(o.rho)?fmt(o.rho,2)+' Ω·m':'—'}${o.anom?' (zona condutiva)':''}\nUTM ${fUTM(o.E)}E / ${fUTM(o.N)}N`)}</description><styleUrl>#${id}</styleUrl><Point><coordinates>${o.lon.toFixed(7)},${o.lat.toFixed(7)},0</coordinates></Point></Placemark>`; }).join('');
     const lin=`<Placemark><name>${X(pf.nome)}${L.prov?' (posição provisória)':''}</name><styleUrl>#${L.prov?'linhaP':'linha'}</styleUrl><LineString><tessellate>1</tessellate><coordinates>${L.a[1].toFixed(7)},${L.a[0].toFixed(7)},0 ${L.b[1].toFixed(7)},${L.b[0].toFixed(7)},0</coordinates></LineString></Placemark>`;
-    return `<Folder><name>${X(pf.nome)}${pf.dir?' – '+X(pf.dir):''}</name>${lin}${est}</Folder>`; }).join('');
+    const ord=D.est.filter(o=>o.pf===pf).sort((a,b)=>a.x-b.x); let seg='';
+    for (let i=0;i<ord.length-1;i++){ const a=ord[i], b=ord[i+1]; const v=[a.rho,b.rho].filter(x=>isFinite(x)); if(!v.length) continue; const rgb=rampRGB(sc.t(Math.sqrt(v.reduce((m,x)=>m*x,1)**(2/v.length)))); const sid='s'+kmlCor(rgb).slice(2);
+      if(!usados[sid]){ usados[sid]=1; st+=`<Style id="${sid}"><LineStyle><color>${kmlCor(rgb)}</color><width>9</width></LineStyle></Style>`; }
+      seg+=`<Placemark><name>${X(rotuloCurto(a.x)+'–'+rotuloCurto(b.x))}</name><styleUrl>#${sid}</styleUrl><LineString><tessellate>1</tessellate><coordinates>${a.lon.toFixed(7)},${a.lat.toFixed(7)},0 ${b.lon.toFixed(7)},${b.lat.toFixed(7)},0</coordinates></LineString></Placemark>`; }
+    return `<Folder><name>${X(pf.nome)}${pf.dir?' – '+X(pf.dir):''}</name><open>1</open>${lin}<Folder><name>Perfil colorido (ρa)</name>${seg}</Folder>${est}</Folder>`; }).join('');
   if (D.poco){ const ce=p.ce; const pf=ce.perfis.find(x=>x.id===ce.poco.perfil); const row=pf? calcPerfil(ce,pf).rows.find(z=>z.x===+ce.poco.x) : null;
     pm=`<Placemark><name>POÇO – ${X(p.nome||'')}</name><description>${DS(`Local recomendado para o poço tubular profundo\n${pf?pf.nome+', estaca '+rotulo(+ce.poco.x):''}${row&&isFinite(row.rho)?` (ρa = ${fmt(row.rho,2)} Ω·m)`:''}\nUTM ${fUTM(D.poco.E)}E / ${fUTM(D.poco.N)}N · zona ${(p.zona||'24M').toUpperCase()}\nLat/long ${D.poco.ll[0].toFixed(6)}, ${D.poco.ll[1].toFixed(6)}${prof?`\nProfundidade recomendada: ${prof} m`:''}${p.local?'\n'+p.local:''}`)}</description><styleUrl>#poco</styleUrl><Point><coordinates>${D.poco.ll[1].toFixed(7)},${D.poco.ll[0].toFixed(7)},0</coordinates></Point></Placemark>`; }
   // mapa de cores (sobreposição)
   const files=[]; let ov='';
   const R=satRaster(D.est); if (R){ const u=b64u8(R.cv.toDataURL('image/png')); files.push({name:'cores.png', data:u});
     ov=`<GroundOverlay><name>Mapa de resistividade aparente (azul = condutivo, vermelho = resistivo)</name><color>${'b3ffffff'}</color><Icon><href>cores.png</href></Icon><LatLonBox><north>${R.nw[0].toFixed(7)}</north><south>${R.se[0].toFixed(7)}</south><east>${R.se[1].toFixed(7)}</east><west>${R.nw[1].toFixed(7)}</west></LatLonBox></GroundOverlay>`; }
-  const c = D.poco? D.poco.ll : D.lines.length? D.lines[0].c : [D.est[0].lat, D.est[0].lon];
-  const look=`<LookAt><longitude>${c[1].toFixed(7)}</longitude><latitude>${c[0].toFixed(7)}</latitude><altitude>0</altitude><range>350</range><tilt>0</tilt><heading>0</heading><altitudeMode>relativeToGround</altitudeMode></LookAt>`;
-  const kml=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${X((p.nome||'Estudo')+(p.local?' – '+p.local:''))}</name><description>${DS('Estudo geofísico – eletrorresistividade (GeoResist)'+(p.data?' · '+p.data:''))}</description>${look}${st}${pm}${ov}${folders}</Document></kml>`;
+  const P2=D.est.map(o=>[o.lat,o.lon]).concat(D.poco?[D.poco.ll]:[]); const las=P2.map(q=>q[0]), los=P2.map(q=>q[1]);
+  const c=[(Math.min(...las)+Math.max(...las))/2,(Math.min(...los)+Math.max(...los))/2];
+  const ext=Math.max(distRumo([Math.min(...las),c[1]],[Math.max(...las),c[1]]).d, distRumo([c[0],Math.min(...los)],[c[0],Math.max(...los)]).d);
+  const rng=Math.max(300, Math.round(ext*4));
+  const look=`<LookAt><longitude>${c[1].toFixed(7)}</longitude><latitude>${c[0].toFixed(7)}</latitude><altitude>0</altitude><range>${rng}</range><tilt>0</tilt><heading>0</heading><altitudeMode>relativeToGround</altitudeMode></LookAt>`;
+  const kml=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${X((p.nome||'Estudo')+(p.local?' – '+p.local:''))}</name><open>1</open><description>${DS('Estudo geofísico – eletrorresistividade (GeoResist)'+(p.data?' · '+p.data:''))}</description>${look}${st}${pm}${ov}${folders}</Document></kml>`;
   files.unshift({name:'doc.kml', data:new TextEncoder().encode(kml)});
   return zip(files);
 }
