@@ -240,14 +240,18 @@ canvas{max-width:100%}
   <div class="card">
     <div class="row" style="justify-content:space-between">
       <h2 style="margin:0">Mapa de satélite</h2>
+      <div class="row" style="gap:10px">
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px">Imagem
+        <select id="satSrc"><option value="esri">Esri (padrão)</option><option value="clar">Clarity (zoom 18)</option><option value="clar19">Clarity (zoom 19)</option></select></label>
       <label class="f" style="flex-direction:row;align-items:center;gap:6px">Cores
-        <input type="range" id="satOp" min="0" max="100" value="60" style="width:110px"></label>
+        <input type="range" id="satOp" min="0" max="100" value="60" style="width:110px"></label></div>
     </div>
     <p class="hint">Estacas na posição real (E05/D05 do GPS) sobre a imagem de satélite. Arraste para mover; use + e − ou dois dedos para o zoom. Toque numa estaca para ver o valor.</p>
     <div id="sat"><div class="tiles"></div><canvas class="ov"></canvas>
       <div class="ctl"><button id="zIn" aria-label="Aproximar">+</button><button id="zOut" aria-label="Afastar">−</button><button id="zFit" aria-label="Centralizar" style="font-size:15px">⌖</button></div>
       <div class="msg hidden" id="satMsg"></div>
       <div class="attr">Imagens © Esri, Maxar, Earthstar Geographics</div></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm" id="btnSatPng">⬇ Baixar imagem do satélite (alta resolução)</button></div>
     <div class="row" style="margin-top:8px" id="satLinks"></div>
     <div id="satInfo" class="hint" style="margin-top:6px"></div>
   </div>
@@ -941,7 +945,12 @@ function utmToLatLon(E,N,zone,south){
 }
 function zonaUTM(){ const z=String(P().zona||'24M').toUpperCase().match(/(\d{1,2})\s*([A-Z])?/); if(!z) return {zone:24,south:true}; const L=z[2]||'M'; return {zone:+z[1], south: L==='S' || L<'N'}; }
 function ll(E,N){ const z=zonaUTM(); return utmToLatLon(E,N,z.zone,z.south); }
-const TILE='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/';
+const SATSRC={
+  esri:{nome:'Esri (padrão)', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/', max:17},
+  clar:{nome:'Esri Clarity – até zoom 18', url:'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/', max:18},
+  clar19:{nome:'Esri Clarity – até zoom 19', url:'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/', max:19}
+};
+function satSrc(){ let k='esri'; try{ k=localStorage.getItem('gr_satsrc')||'esri'; }catch(e){} return SATSRC[k]? k : 'esri'; }
 const SAT={ z:18, lat:0, lon:0, inited:false, ok:0, fail:0, raster:null, pts:[], fitted:false };
 function wpx(lat,lon,z){ const n=256*Math.pow(2,z); const s=Math.sin(lat*Math.PI/180); return [ (lon+180)/360*n, (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n ]; }
 function wll(x,y,z){ const n=256*Math.pow(2,z); const lon=x/n*360-180; const t=Math.PI-2*Math.PI*y/n; return [180/Math.PI*Math.atan(0.5*(Math.exp(t)-Math.exp(-t))), lon]; }
@@ -983,8 +992,10 @@ function satInit(){
   $('#zIn').addEventListener('pointerdown', e=>e.stopPropagation()); $('#zOut').addEventListener('pointerdown', e=>e.stopPropagation()); $('#zFit').addEventListener('pointerdown', e=>e.stopPropagation());
   $('#zIn').addEventListener('click', ()=>satZoom(1)); $('#zOut').addEventListener('click', ()=>satZoom(-1)); $('#zFit').addEventListener('click', ()=>{ SAT.fitted=false; satRender(); });
   $('#satOp').addEventListener('input', ()=>satDraw());
+  const ss=$('#satSrc'); ss.value=satSrc(); ss.addEventListener('change', ()=>{ try{ localStorage.setItem('gr_satsrc', ss.value); }catch(e){} SAT.ok=0; SAT.fail=0; SAT.msgClosed=false; box.querySelector('.tiles').innerHTML=''; satDraw(); toast('Imagem: '+SATSRC[ss.value].nome+'. Se a imagem ficar cinza ou borrada, volte para a padrão.'); });
+  $('#btnSatPng').addEventListener('click', satBaixar);
 }
-function satZoom(d){ SAT.z=Math.max(12,Math.min(20,SAT.z+d)); satDraw(); }
+function satZoom(d){ SAT.z=Math.max(12,Math.min(21,SAT.z+d)); satDraw(); }
 function satFit(D){
   const box=$('#sat'); const W=box.clientWidth||600, H=box.clientHeight||480;
   const L=D.est.length? D.est : null; if(!L){ const p=P(); const E=num(p.utmE), N=num(p.utmN); if(isFinite(E)&&isFinite(N)){ [SAT.lat,SAT.lon]=ll(E,N); SAT.z=17; } return; }
@@ -1009,13 +1020,13 @@ function satDraw(){
   const tl=box.querySelector('.tiles'); const z=SAT.z; const [cx,cy]=wpx(SAT.lat,SAT.lon,z);
   const x0=cx-W/2, y0=cy-H/2; const n=Math.pow(2,z);
   const need=new Set();
-  const tz=Math.min(z,17); const f=Math.pow(2,z-tz); const ts=256*f; // acima de z17, amplia os tiles do z17 (zona rural costuma ter imagem até 17)
+  const SRC=SATSRC[satSrc()]; const tz=Math.min(z,SRC.max); const f=Math.pow(2,z-tz); const ts=256*f; // acima do zoom máximo da fonte, amplia os tiles disponíveis
   for (let ty=Math.floor(y0/ts); ty<=Math.floor((y0+H)/ts); ty++) for (let tx=Math.floor(x0/ts); tx<=Math.floor((x0+W)/ts); tx++){
-    const m=Math.pow(2,tz); if (ty<0||ty>=m) continue; const wx=((tx%m)+m)%m; const key=tz+'/'+ty+'/'+wx; need.add(key);
+    const m=Math.pow(2,tz); if (ty<0||ty>=m) continue; const wx=((tx%m)+m)%m; const key=satSrc()+'/'+tz+'/'+ty+'/'+wx; need.add(key);
     let im=tl.querySelector(`img[data-k="${key}"]`);
-    if (!im){ im=new Image(); im.dataset.k=key; im.alt=''; im.decoding='async';
+    if (!im){ im=new Image(); im.crossOrigin='anonymous'; im.dataset.k=key; im.alt=''; im.decoding='async';
       im.onload=()=>{ SAT.ok++; satMsg(); }; im.onerror=()=>{ SAT.fail++; im.style.visibility='hidden'; satMsg(); };
-      im.src=TILE+key; tl.appendChild(im); }
+      im.src=SRC.url+tz+'/'+ty+'/'+wx; tl.appendChild(im); }
     im.style.left=(tx*ts-x0)+'px'; im.style.top=(ty*ts-y0)+'px'; im.style.width=ts+'px'; im.style.height=ts+'px';
   }
   tl.querySelectorAll('img').forEach(im=>{ if(!need.has(im.dataset.k)) im.remove(); });
@@ -1026,9 +1037,13 @@ function satDraw(){
   const S=(lat,lon)=>{ const q=wpx(lat,lon,z); return [q[0]-x0, q[1]-y0]; };
   if (SAT.ok===0 && SAT.fail>0){ // sem imagem: grade simples
     g.fillStyle='#e9e6df'; g.fillRect(0,0,W,H); }
+  satOverlay(g,W,H,z,x0,y0,SAT.lat);
+}
+function satOverlay(g,W,H,z,x0,y0,lat0){
+  const n=Math.pow(2,z); const S=(lat,lon)=>{ const q=wpx(lat,lon,z); return [q[0]-x0, q[1]-y0]; };
   const D=SAT.D; if(!D) return;
   if (SAT.raster){ const a=S(...SAT.raster.nw), b=S(...SAT.raster.se); g.globalAlpha=(+$('#satOp').value)/100; g.imageSmoothingEnabled=true; g.drawImage(SAT.raster.cv, a[0], a[1], b[0]-a[0], b[1]-a[1]); g.globalAlpha=1; }
-  const sc=curScale(); const mpp=156543.03392*Math.cos(SAT.lat*Math.PI/180)/n; const big = 1/mpp > 1.2; // px por metro
+  const sc=curScale(); const mpp=156543.03392*Math.cos(lat0*Math.PI/180)/n; const big = 1/mpp > 1.2; // px por metro
   D.lines.forEach(L=>{ const a=S(...L.a), b=S(...L.b); g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=3; g.setLineDash(L.prov?[6,5]:[]); g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); g.strokeStyle='rgba(0,0,0,.7)'; g.lineWidth=1.2; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); g.setLineDash([]); });
   D.est.forEach(o=>{ const [x,y]=S(o.lat,o.lon); const r = o.anom? 7 : 5.5; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fillStyle=isFinite(o.rho)? sc.css(o.rho) : '#999'; g.fill(); g.lineWidth=o.anom?2.5:1.5; g.strokeStyle=o.anom?'#fff':'#111'; g.stroke(); });
   g.font='bold 12px Helvetica,Arial'; g.textAlign='center'; g.textBaseline='middle';
@@ -1045,6 +1060,35 @@ function satDraw(){
   const sl=niceStep(W*0.25*mpp,1); const spx=sl/mpp; const bx=12, by=H-22; g.fillStyle='rgba(255,255,255,.85)'; g.fillRect(bx-4,by-16,spx+8,26); g.fillStyle='#111'; g.fillRect(bx,by,spx/2,5); g.strokeStyle='#111'; g.strokeRect(bx,by,spx,5);
   g.font='10px Helvetica'; g.textAlign='left'; g.fillText('0',bx,by-7); g.textAlign='right'; g.fillText(fmt(sl,0)+' m',bx+spx,by-7);
   g.textBaseline='alphabetic';
+}
+// imagem do satélite para baixar/relatório: tiles 1 nível acima (2× mais pixels) quando a fonte tiver
+function satTile(url){ return new Promise(res=>{ const im=new Image(); im.crossOrigin='anonymous'; let done=false; const t=setTimeout(()=>{ if(!done){done=true;res(null);} },10000);
+  im.onload=()=>{ if(!done){done=true;clearTimeout(t);res(im);} }; im.onerror=()=>{ if(!done){done=true;clearTimeout(t);res(null);} }; im.src=url; }); }
+async function satCanvas(W=1000,H=700,K=2){
+  const D=satData(); if(!D.est.length && !D.poco) return null; SAT.D=D;
+  const L=D.est.length? D.est : [{lat:D.poco.ll[0],lon:D.poco.ll[1]}];
+  const la=L.map(o=>o.lat), lo=L.map(o=>o.lon); const lat=(Math.min(...la)+Math.max(...la))/2, lon=(Math.min(...lo)+Math.max(...lo))/2;
+  let z=12; for (let zz=21; zz>=12; zz--){ const a=wpx(Math.max(...la),Math.min(...lo),zz), b=wpx(Math.min(...la),Math.max(...lo),zz); if ((b[0]-a[0])<W*0.85 && (b[1]-a[1])<H*0.85){ z=zz; break; } }
+  const SRC=SATSRC[satSrc()]; const tz=Math.min(z+Math.log2(K),SRC.max); const ts=256*Math.pow(2,z-tz);
+  const [cx,cy]=wpx(lat,lon,z); const x0=cx-W/2, y0=cy-H/2;
+  const cv=document.createElement('canvas'); cv.width=W*K; cv.height=H*K; const g=cv.getContext('2d'); g.setTransform(K,0,0,K,0,0);
+  g.fillStyle='#e9e6df'; g.fillRect(0,0,W,H); g.imageSmoothingEnabled=true; g.imageSmoothingQuality='high';
+  const jobs=[]; const m=Math.pow(2,tz);
+  for (let ty=Math.floor(y0/ts); ty<=Math.floor((y0+H)/ts); ty++) for (let tx=Math.floor(x0/ts); tx<=Math.floor((x0+W)/ts); tx++){
+    if (ty<0||ty>=m) continue; const wx=((tx%m)+m)%m;
+    jobs.push(satTile(SRC.url+tz+'/'+ty+'/'+wx).then(im=>({im,tx,ty}))); }
+  const tiles=await Promise.all(jobs); let ok=0;
+  tiles.forEach(({im,tx,ty})=>{ if(!im) return; ok++; g.drawImage(im, tx*ts-x0, ty*ts-y0, ts, ts); });
+  if (!ok) return null;
+  SAT.raster=satRaster(D.est); satOverlay(g,W,H,z,x0,y0,lat);
+  g.font='10px Helvetica'; g.textAlign='right'; g.fillStyle='rgba(255,255,255,.8)'; const at='Imagens © Esri, Maxar, Earthstar Geographics'; const aw=g.measureText(at).width+10; g.fillRect(W-aw,H-16,aw,16); g.fillStyle='#333'; g.fillText(at,W-5,H-5);
+  try{ cv.toDataURL('image/png').length; }catch(e){ return null; } // imagem bloqueada (sem CORS)
+  return cv;
+}
+async function satBaixar(){
+  toast('Montando a imagem do satélite…'); const cv=await satCanvas(1000,700,2);
+  if(!cv){ toast('Não foi possível baixar as imagens de satélite (sem internet?).'); return; }
+  cv.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=((P().nome||'estudo').replace(/[\/–]+/g,'-').replace(/[^\wÀ-ú -]+/g,'').replace(/\s+/g,' ').trim()||'estudo')+' - satelite.png'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); toast('Imagem salva (2000×1400 px).'); },'image/png');
 }
 function satMsg(){
   const m=$('#satMsg');
@@ -1530,6 +1574,8 @@ async function gerarRelatorio(){
   // mapa de localização (UTM) como figura
   try{ const mc=document.createElement('canvas'); const dm=desenharMapa(mc,2,900); const rid=addImg(await canvasPng(mc),'png'); let wcm=16, hcm=wcm*dm.H/dm.W; if(hcm>12){ hcm=12; wcm=hcm*dm.W/dm.H; }
     B+=Pa('',{jc:'center',raw:imgXml(rid,wcm,hcm),after:60,line:240})+Pa([['Figura 1 – Localização dos perfis e do poço (resistividade aparente; azul = condutivo, vermelho = resistivo).',{i:true,sz:18}]],{jc:'center'}); }catch(err){}
+  try{ const sc2=await satCanvas(1000,700,2); if(sc2){ const rid2=addImg(await canvasPng(sc2),'png');
+    B+=Pa('',{jc:'center',raw:imgXml(rid2,16,11.2),before:200,after:60,line:240})+Pa([['Figura 2 – Imagem de satélite com os perfis, as estacas (resistividade aparente) e o local do poço. Imagens © Esri, Maxar, Earthstar Geographics.',{i:true,sz:18}]],{jc:'center'}); } }catch(err){}
   // 2.0 / 3.0
   B+=PB()+Pa([['2.0) ASPECTOS FISIOGRÁFICOS',{b:true}]],{after:300,jc:'left'})+textoPar(v('fisio'));
   B+=Pa([['3.0) RECURSOS HÍDRICOS',{b:true}]],{before:200,after:200,jc:'left',keep:true})+Pa([['3.1 Águas Superficiais',{b:true}]],{after:160,jc:'left',keep:true})+textoPar(v('superf'));
