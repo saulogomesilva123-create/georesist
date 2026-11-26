@@ -256,7 +256,8 @@ canvas{max-width:100%}
       <div class="meinfo hidden" id="satMe"></div>
       <div class="msg hidden" id="satMsg"></div>
       <div class="attr">Imagens © Esri, Maxar, Earthstar Geographics</div></div>
-    <div class="row" style="margin-top:8px"><button class="btn sm" id="btnSatPng">⬇ Baixar imagem do satélite (alta resolução)</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm pri" id="btnKmz">🌍 Abrir no Google Earth (todos os pontos + poço)</button><button class="btn sm" id="btnSatPng">⬇ Baixar imagem do satélite (alta resolução)</button></div>
+    <p class="hint" style="margin-top:4px">O arquivo do Google Earth (.kmz) leva as estacas coloridas, os perfis, o mapa de cores e o poço. Abra com o app <b>Google Earth</b> no celular, ou no computador em earth.google.com → Projetos → Abrir → Importar arquivo KML. No <b>Google My Maps</b>: Criar mapa → Importar. Para o relatório usar a imagem do Google, tire um print no Google Earth e escolha em Exportar → Textos e dados do relatório → Figura 2.</p>
     <div class="row" style="margin-top:8px" id="satLinks"></div>
     <div id="satInfo" class="hint" style="margin-top:6px"></div>
   </div>
@@ -339,7 +340,8 @@ canvas{max-width:100%}
     <h2>Exportar</h2>
     <div class="row">
       <button class="btn pri" id="btnPng">Imagem dos desenhos (PNG)</button>
-      <button class="btn pri" id="btnGmaps">Pontos p/ Google Maps (CSV)</button>
+      <button class="btn pri" id="btnKmz2">🌍 Google Earth / My Maps (KMZ)</button>
+      <button class="btn" id="btnGmaps">Pontos p/ Google Maps (CSV)</button>
       <button class="btn" id="btnCsv">Ficha de campo (CSV/Excel)</button>
       <button class="btn" id="btnJson">Backup deste estudo</button>
       <button class="btn pri" id="btnBkAll">💾 Backup de todos os estudos</button>
@@ -617,7 +619,7 @@ $('#btnNew').addEventListener('click', ()=>{ const p=novoEstudo('Novo estudo'); 
 $('#btnExemplo').addEventListener('click', ()=>{ const p=exemplo(); S.projects[p.id]=p; S.cur=p.id; touch(); renderAll(); toast('Exemplo carregado'); });
 $('#btnDel').addEventListener('click', ()=>{
   confirmBox('Excluir estudo', `Excluir “${P().nome}”? Isso não pode ser desfeito (exporte um backup antes, se precisar).`, ()=>{
-    const id=S.cur; delete S.projects[id]; cloudDelete(id); fotosDe(id).then(fs=>fs.forEach(f=>{ fotoDel(f.id); cloudFotoDel(f.id); }));
+    const id=S.cur; delete S.projects[id]; fotoDel('gearth_'+id); cloudDelete(id); fotosDe(id).then(fs=>fs.forEach(f=>{ fotoDel(f.id); cloudFotoDel(f.id); }));
     if (!Object.keys(S.projects).length){ const n=novoEstudo(); S.projects[n.id]=n; }
     S.cur=Object.keys(S.projects)[0]; saveLocal(); renderAll(); toast('Estudo excluído');
   });
@@ -1014,7 +1016,7 @@ function satInit(){
   $('#zIn').addEventListener('click', ()=>satZoom(1)); $('#zOut').addEventListener('click', ()=>satZoom(-1)); $('#zFit').addEventListener('click', ()=>{ SAT.fitted=false; satRender(); });
   $('#satOp').addEventListener('input', ()=>satDraw());
   const ss=$('#satSrc'); ss.value=satSrc(); ss.addEventListener('change', ()=>{ try{ localStorage.setItem('gr_satsrc', ss.value); }catch(e){} SAT.ok=0; SAT.fail=0; SAT.msgClosed=false; box.querySelector('.tiles').innerHTML=''; satDraw(); toast('Imagem: '+SATSRC[ss.value].nome+'. Se a imagem ficar cinza ou borrada, volte para a padrão.'); });
-  $('#btnSatPng').addEventListener('click', satBaixar);
+  $('#btnSatPng').addEventListener('click', satBaixar); $('#btnKmz').addEventListener('click', enviarKmz);
 }
 function satZoom(d){ SAT.z=Math.max(12,Math.min(21,SAT.z+d)); satDraw(); }
 function satFit(D){
@@ -1140,6 +1142,39 @@ function satMeDraw(g,z,x0,y0){ const m=SAT.me; if(!m) return; const n=Math.pow(2
   if (al){ const t=wpx(al.ll[0],al.ll[1],z); g.setLineDash([7,6]); g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=3; g.beginPath(); g.moveTo(x,y); g.lineTo(t[0]-x0,t[1]-y0); g.stroke(); g.strokeStyle='#1a73e8'; g.lineWidth=1.5; g.stroke(); g.setLineDash([]); }
   const ra=m.acc/mpp; if (ra>8){ g.beginPath(); g.arc(x,y,ra,0,Math.PI*2); g.fillStyle='rgba(26,115,232,.15)'; g.fill(); g.strokeStyle='rgba(26,115,232,.6)'; g.lineWidth=1; g.stroke(); }
   g.beginPath(); g.arc(x,y,9,0,Math.PI*2); g.fillStyle='#fff'; g.fill(); g.beginPath(); g.arc(x,y,6.5,0,Math.PI*2); g.fillStyle='#1a73e8'; g.fill(); }
+// ---------- Google Earth / My Maps: KMZ com estacas, perfis, mapa de cores e poço ----------
+function kmlCor(rgb, a='ff'){ const h=v=>Math.round(v).toString(16).padStart(2,'0'); return a+h(rgb[2])+h(rgb[1])+h(rgb[0]); }
+async function gerarKmz(){
+  const p=P(), D=satData(); if (!D.est.length && !D.poco) return null; const sc=curScale(); const X=t=>String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); const DS=t=>`<![CDATA[${String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')}]]>`;
+  const r=relAuto(p), rr=relDe(p); const prof=(rr.prof&&String(rr.prof).trim())||r.prof||'';
+  let st='', pm='';
+  st+=`<Style id="poco"><IconStyle><scale>1.6</scale><Icon><href>https://maps.google.com/mapfiles/kml/paddle/red-stars.png</href></Icon><hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/></IconStyle><LabelStyle><scale>1.2</scale><color>ff00ffff</color></LabelStyle></Style>`;
+  st+=`<Style id="linha"><LineStyle><color>ffffffff</color><width>3</width></LineStyle></Style><Style id="linhaP"><LineStyle><color>bbffffff</color><width>2</width></LineStyle></Style>`;
+  const usados={};
+  const folders=D.lines.map(L=>{ const pf=L.pf;
+    const est=D.est.filter(o=>o.pf===pf).map(o=>{ const rgb=isFinite(o.rho)? rampRGB(sc.t(o.rho)) : [150,150,150]; const id='e'+kmlCor(rgb).slice(2)+(o.anom?'a':'');
+      if(!usados[id]){ usados[id]=1; st+=`<Style id="${id}"><IconStyle><color>${kmlCor(rgb)}</color><scale>${o.anom?1.1:0.8}</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle><LabelStyle><scale>0.7</scale></LabelStyle></Style>`; }
+      return `<Placemark><name>${X(rotuloCurto(o.x))}</name><description>${DS(`${pf.nome} · estaca ${rotulo(o.x)}\nρa = ${isFinite(o.rho)?fmt(o.rho,2)+' Ω·m':'—'}${o.anom?' (zona condutiva)':''}\nUTM ${fUTM(o.E)}E / ${fUTM(o.N)}N`)}</description><styleUrl>#${id}</styleUrl><Point><coordinates>${o.lon.toFixed(7)},${o.lat.toFixed(7)},0</coordinates></Point></Placemark>`; }).join('');
+    const lin=`<Placemark><name>${X(pf.nome)}${L.prov?' (posição provisória)':''}</name><styleUrl>#${L.prov?'linhaP':'linha'}</styleUrl><LineString><tessellate>1</tessellate><coordinates>${L.a[1].toFixed(7)},${L.a[0].toFixed(7)},0 ${L.b[1].toFixed(7)},${L.b[0].toFixed(7)},0</coordinates></LineString></Placemark>`;
+    return `<Folder><name>${X(pf.nome)}${pf.dir?' – '+X(pf.dir):''}</name>${lin}${est}</Folder>`; }).join('');
+  if (D.poco){ const ce=p.ce; const pf=ce.perfis.find(x=>x.id===ce.poco.perfil); const row=pf? calcPerfil(ce,pf).rows.find(z=>z.x===+ce.poco.x) : null;
+    pm=`<Placemark><name>POÇO – ${X(p.nome||'')}</name><description>${DS(`Local recomendado para o poço tubular profundo\n${pf?pf.nome+', estaca '+rotulo(+ce.poco.x):''}${row&&isFinite(row.rho)?` (ρa = ${fmt(row.rho,2)} Ω·m)`:''}\nUTM ${fUTM(D.poco.E)}E / ${fUTM(D.poco.N)}N · zona ${(p.zona||'24M').toUpperCase()}\nLat/long ${D.poco.ll[0].toFixed(6)}, ${D.poco.ll[1].toFixed(6)}${prof?`\nProfundidade recomendada: ${prof} m`:''}${p.local?'\n'+p.local:''}`)}</description><styleUrl>#poco</styleUrl><Point><coordinates>${D.poco.ll[1].toFixed(7)},${D.poco.ll[0].toFixed(7)},0</coordinates></Point></Placemark>`; }
+  // mapa de cores (sobreposição)
+  const files=[]; let ov='';
+  const R=satRaster(D.est); if (R){ const u=b64u8(R.cv.toDataURL('image/png')); files.push({name:'cores.png', data:u});
+    ov=`<GroundOverlay><name>Mapa de resistividade aparente (azul = condutivo, vermelho = resistivo)</name><color>${'b3ffffff'}</color><Icon><href>cores.png</href></Icon><LatLonBox><north>${R.nw[0].toFixed(7)}</north><south>${R.se[0].toFixed(7)}</south><east>${R.se[1].toFixed(7)}</east><west>${R.nw[1].toFixed(7)}</west></LatLonBox></GroundOverlay>`; }
+  const c = D.poco? D.poco.ll : D.lines.length? D.lines[0].c : [D.est[0].lat, D.est[0].lon];
+  const look=`<LookAt><longitude>${c[1].toFixed(7)}</longitude><latitude>${c[0].toFixed(7)}</latitude><altitude>0</altitude><range>350</range><tilt>0</tilt><heading>0</heading><altitudeMode>relativeToGround</altitudeMode></LookAt>`;
+  const kml=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${X((p.nome||'Estudo')+(p.local?' – '+p.local:''))}</name><description>${DS('Estudo geofísico – eletrorresistividade (GeoResist)'+(p.data?' · '+p.data:''))}</description>${look}${st}${pm}${ov}${folders}</Document></kml>`;
+  files.unshift({name:'doc.kml', data:new TextEncoder().encode(kml)});
+  return zip(files);
+}
+async function enviarKmz(){
+  const z=await gerarKmz(); if(!z){ toast('Informe as coordenadas de E05 e D05 dos perfis primeiro'); return; }
+  const blob = z instanceof Blob ? z : new Blob([z], {type:'application/vnd.google-earth.kmz'});
+  const nome=fileBase()+'_google_earth.kmz';
+  try{ const fl=new File([blob], nome, {type:'application/vnd.google-earth.kmz'}); if (navigator.canShare && navigator.canShare({files:[fl]})){ await navigator.share({files:[fl], title:nome}); return; } }catch(e){ if (e && e.name==='AbortError') return; }
+  await salvar(nome, blob); }
 function satMsg(){
   const m=$('#satMsg');
   if (SAT.ok===0 && SAT.fail>0){ if (SAT.msgClosed) return; m.innerHTML='<span style="float:right;font-weight:700;cursor:pointer;padding:0 4px" id="satMsgX">×</span>As imagens de satélite não carregaram aqui (sem internet ou bloqueio da página dentro do Claude). As estacas e cores continuam no lugar certo; use o botão <b>Google Maps</b> abaixo ou abra o app pelo arquivo no navegador do celular.'; m.classList.remove('hidden'); const x=$('#satMsgX'); if(x){ x.onpointerdown=e=>e.stopPropagation(); x.onclick=()=>{ SAT.msgClosed=true; m.classList.add('hidden'); }; } if(!SAT.bgDone){ SAT.bgDone=true; satDraw(); } }
@@ -1310,7 +1345,7 @@ function gmapsCsv(){
 }
 $('#btnGmaps').addEventListener('click', ()=>{ const r=gmapsCsv(); if(!r.n){ toast('Informe as coordenadas de E05 e D05 dos perfis primeiro'); return; } salvar(fileBase()+'_google_maps.csv', r.txt, r.txt); });
 $('#btnCsv').addEventListener('click', ()=>{ const t=csvExport(); salvar(fileBase()+'_ficha.csv', t, t); });
-async function pacoteEstudo(p){ const fs=await fotosDe(p.id); return {estudo:p, fotos:fs.map(f=>({legenda:f.legenda,data:f.data,ordem:f.ordem,img:f.img}))}; }
+async function pacoteEstudo(p){ const fs=await fotosDe(p.id); const ge=await gearthGet(p.id); return {estudo:p, fotos:fs.map(f=>({legenda:f.legenda,data:f.data,ordem:f.ordem,img:f.img})), gearth: ge? ge.img : undefined}; }
 async function enviarArquivo(nome, texto, tipo='application/json'){
   try{ const fl=new File([texto], nome, {type:tipo}); if (navigator.canShare && navigator.canShare({files:[fl]})){ await navigator.share({files:[fl], title:nome}); return true; } }catch(e){ if (e && e.name==='AbortError') return false; }
   await salvar(nome, texto, texto.length<400000?texto:undefined); return true; }
@@ -1320,7 +1355,7 @@ async function backupTudo(){ toast('Preparando backup…'); const est=[]; for (c
   const t=JSON.stringify({georesist:2, criado:new Date().toISOString(), cfg:S.cfg||{}, estudos:est}); const d=new Date();
   const nome=`GeoResist backup ${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
   if (await enviarArquivo(nome, t)) marcaBackup(); }
-$('#btnBkAll').addEventListener('click', backupTudo);
+$('#btnBkAll').addEventListener('click', backupTudo); $('#btnKmz2').addEventListener('click', ()=>enviarKmz());
 function renderBk(){ const el=$('#bkInfo'); if(!el) return; const ids=Object.keys(S.projects); const ult=S.lastBackup||0;
   const mud=ids.some(id=>(S.projects[id].updatedAt||0)>ult && !S.projects[id].fotosExemplo);
   const quando= ult? new Date(ult).toLocaleDateString('pt-BR') : null;
@@ -1337,6 +1372,7 @@ function importa1(o){ const p=o.estudo||o; if(!p||!p.ce||!p.sev) return 'inv';
   if (ex || !p.id){ p.id=uid(); p.nome=(p.nome||'Importado')+(ex?' (backup)':''); }
   p.nome=p.nome||'Importado'; p.fotosExemplo=false; S.projects[p.id]=p; S.cur=p.id;
   (o.fotos||[]).forEach((f,i)=>{ const nf={id:uid(),projeto:p.id,ordem:f.ordem??i,legenda:f.legenda||'',data:f.data||'',img:f.img,updatedAt:Date.now()}; fotoPut(nf).then(()=>cloudFoto(nf)); });
+  if (o.gearth) fotoPut({id:'gearth_'+p.id, projeto:'gearth:'+p.id, ordem:0, legenda:'Google Earth', data:'', img:o.gearth, updatedAt:Date.now()});
   cloudSave(p); return 'ok'; }
 function importar(txt){
   let o; try{ o=JSON.parse(txt); }catch(e){ toast('Arquivo inválido'); return; }
@@ -1591,7 +1627,22 @@ function renderRelForm(){
       <div style="border:1px dashed var(--line);border-radius:8px;padding:8px;min-height:70px;display:flex;align-items:center;justify-content:center;background:#fff">${e[k]?`<img src="${e[k]}" style="max-height:80px;max-width:100%">`:'<span class="hint">nenhuma imagem</span>'}</div>
       <div class="row" style="margin-top:6px"><label class="btn sm" style="cursor:pointer">${e[k]?'Trocar':'Escolher'} imagem<input type="file" accept="image/*" class="hidden" data-empimg="${k}"></label>${e[k]?`<button class="btn sm dan" data-empdel="${k}">Remover</button>`:''}</div></div>`).join('')}</div>
     <p class="hint">A assinatura tem o fundo removido automaticamente e entra acima do nome do responsável. O registro no CREA vai abaixo do nome.</p>
+    <h3>Imagem de satélite do relatório (Figura 2)</h3>
+    <p class="hint">Para usar a imagem do Google (mais nítida): aba Mapas → “🌍 Abrir no Google Earth”, enquadre o poço e os perfis, tire um print da tela e escolha o print aqui. Recorte as bordas do app antes, se quiser.</p>
+    <div id="geBox"><span class="hint">carregando…</span></div>
     <p class="hint">Campos vazios usam o valor automático (mostrado em cinza). Os textos do município vêm do último estudo editado — revise ao mudar de município.</p>`;
+  geRender();
+}
+async function gearthGet(pid){ const l=await fotosDe('gearth:'+pid); return l[0]||null; }
+async function geRender(){ const bx=$('#geBox'); if(!bx) return; const p=P(); const g=await gearthGet(p.id); const r=relDe(p);
+  bx.innerHTML = `<div style="border:1px dashed var(--line);border-radius:8px;padding:8px;min-height:70px;display:flex;align-items:center;justify-content:center;background:#fff">${g?`<img src="${g.img}" style="max-height:180px;max-width:100%">`:'<span class="hint">Sem print do Google Earth — o relatório usa a imagem do app (Esri).</span>'}</div>
+    <div class="row" style="margin-top:6px"><label class="btn sm ${g?'':'pri'}" style="cursor:pointer">${g?'Trocar print':'🌍 Escolher print do Google Earth'}<input type="file" accept="image/*" class="hidden" id="geFile"></label>${g?'<button class="btn sm dan" id="geDel">Remover</button>':''}</div>
+    ${g?`<label class="f" style="flex-direction:row;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" id="geEsri" ${r.gearthEsri?'checked':''} style="width:auto"> Manter também a imagem do app (Esri) como Figura 3</label>`:''}`;
+  $('#geFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const src=await new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.readAsDataURL(f); }); const im=await carregaImg(src); if(!im){ toast('Não consegui ler a imagem'); return; }
+    const sc=Math.min(1,2000/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc); c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    await fotoPut({id:'gearth_'+p.id, projeto:'gearth:'+p.id, ordem:0, legenda:'Google Earth', data:'', img:c.toDataURL('image/jpeg',0.88), updatedAt:Date.now()}); touch(); geRender(); toast('Imagem do Google Earth salva — vai como Figura 2 do relatório'); };
+  const d=$('#geDel'); if(d) d.onclick=async ()=>{ await fotoDel('gearth_'+p.id); touch(); geRender(); };
+  const k=$('#geEsri'); if(k) k.onchange=()=>{ relDe(p).gearthEsri=k.checked; touch(); };
 }
 document.addEventListener('input', e=>{
   const el=e.target;
@@ -1701,8 +1752,11 @@ async function gerarRelatorio(){
   // mapa de localização (UTM) como figura
   try{ const mc=document.createElement('canvas'); const dm=desenharMapa(mc,2,900); const rid=addImg(await canvasPng(mc),'png'); let wcm=16, hcm=wcm*dm.H/dm.W; if(hcm>12){ hcm=12; wcm=hcm*dm.W/dm.H; }
     B+=Pa('',{jc:'center',raw:imgXml(rid,wcm,hcm),after:60,line:240})+Pa([['Figura 1 – Localização dos perfis e do poço (resistividade aparente; azul = condutivo, vermelho = resistivo).',{i:true,sz:18}]],{jc:'center'}); }catch(err){}
-  try{ const sc2=await satCanvas(1000,700,2); if(sc2){ const rid2=addImg(await canvasPng(sc2),'png');
-    B+=Pa('',{jc:'center',raw:imgXml(rid2,16,11.2),before:200,after:60,line:240})+Pa([['Figura 2 – Imagem de satélite com os perfis, as estacas (resistividade aparente) e o local do poço. Imagens © Esri, Maxar, Earthstar Geographics.',{i:true,sz:18}]],{jc:'center'}); } }catch(err){}
+  let nFig=2; const ge=await gearthGet(p.id);
+  if (ge){ try{ const dm=await imgCm(ge.img,16,12); if(dm){ const rg=addImg(b64u8(ge.img),'jpeg');
+    B+=Pa('',{jc:'center',raw:imgXml(rg,dm.w,dm.h),before:200,after:60,line:240})+Pa([[`Figura ${nFig++} – Imagem de satélite com os perfis, as estacas e o local do poço. Imagem © Google Earth.`,{i:true,sz:18}]],{jc:'center'}); } }catch(err){} }
+  if (!ge || r.gearthEsri){ try{ const sc2=await satCanvas(1000,700,2); if(sc2){ const rid2=addImg(await canvasPng(sc2),'png');
+    B+=Pa('',{jc:'center',raw:imgXml(rid2,16,11.2),before:200,after:60,line:240})+Pa([[`Figura ${nFig++} – Imagem de satélite com os perfis, as estacas (resistividade aparente) e o local do poço. Imagens © Esri, Maxar, Earthstar Geographics.`,{i:true,sz:18}]],{jc:'center'}); } }catch(err){} }
   // 2.0 / 3.0
   B+=PB()+Pa([['2.0) ASPECTOS FISIOGRÁFICOS',{b:true}]],{after:300,jc:'left'})+textoPar(v('fisio'));
   B+=Pa([['3.0) RECURSOS HÍDRICOS',{b:true}]],{before:200,after:200,jc:'left',keep:true})+Pa([['3.1 Águas Superficiais',{b:true}]],{after:160,jc:'left',keep:true})+textoPar(v('superf'));
