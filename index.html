@@ -127,6 +127,8 @@ canvas{max-width:100%}
 #sat canvas.ov{position:absolute;inset:0;pointer-events:none}
 #sat .ctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:3}
 #sat .ctl button{width:38px;height:38px;border-radius:8px;border:0;background:#fff;font-size:20px;font-weight:700;color:#23404f;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:pointer}
+#sat .ctl button.on{background:#1a73e8;color:#fff}
+#sat .meinfo{position:absolute;left:46px;top:10px;right:58px;background:rgba(26,115,232,.95);color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 #sat .attr{position:absolute;right:0;bottom:0;background:rgba(255,255,255,.75);font-size:10px;padding:1px 5px;z-index:3}
 #sat .msg{position:absolute;left:10px;right:10px;bottom:52px;font-size:12px!important;background:rgba(255,255,255,.94);border-radius:8px;padding:8px 10px;font-size:13px;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 
@@ -168,6 +170,7 @@ canvas{max-width:100%}
       <label class="f">UTM E (m)<input inputmode="decimal" data-p="utmE"></label>
       <label class="f">UTM N (m)<input inputmode="decimal" data-p="utmN"></label>
       <label class="f">Zona UTM<input data-p="zona" placeholder="24M"></label>
+      <div class="gpsbtn"><button class="btn sm" data-gps="P">📍 Estou no local — pegar GPS</button></div>
       <label class="f">Responsável técnico<input data-p="resp"></label>
       <label class="f">Equipamento<input data-p="equip" placeholder="Eletrorresistivímetro"></label>
       <label class="f" style="grid-column:1/-1">Observações de campo<textarea data-p="obs"></textarea></label>
@@ -184,6 +187,7 @@ canvas{max-width:100%}
       <button class="btn dan" id="btnDel">Excluir este estudo</button>
     </div>
     <p class="hint" id="syncInfo">Os dados ficam salvos neste aparelho.</p>
+    <div id="bkInfo"></div>
   </div>
 </section>
 
@@ -214,7 +218,7 @@ canvas{max-width:100%}
       <p style="margin:0 0 10px"><button class="btn sm dan" id="btnDelPerf">Excluir este perfil</button></p>
     </details>
     <div class="tbwrap"><table class="t" id="ceTable"></table></div>
-    <p class="hint"><span id="hintModo"></span> “Enter” pula para a próxima estaca. Azul (●) = zona condutiva · Amarelo (⚠) = valor muito fora do perfil, confira a leitura · Toque no nome da estaca para marcar o poço.</p>
+    <p class="hint"><span id="hintModo"></span> “Enter” pula para a próxima estaca. Azul (●) = zona condutiva · Amarelo (⚠) = leitura isolada muito diferente das estacas vizinhas (ou do perfil todo) — o app avisa na hora, confira · Toque no nome da estaca para marcar o poço.</p>
   </div>
   <div class="card" id="ceChartCard">
     <h2>Perfil de resistividade aparente</h2>
@@ -248,7 +252,8 @@ canvas{max-width:100%}
     </div>
     <p class="hint">Estacas na posição real (E05/D05 do GPS) sobre a imagem de satélite. Arraste para mover; use + e − ou dois dedos para o zoom. Toque numa estaca para ver o valor.</p>
     <div id="sat"><div class="tiles"></div><canvas class="ov"></canvas>
-      <div class="ctl"><button id="zIn" aria-label="Aproximar">+</button><button id="zOut" aria-label="Afastar">−</button><button id="zFit" aria-label="Centralizar" style="font-size:15px">⌖</button></div>
+      <div class="ctl"><button id="zIn" aria-label="Aproximar">+</button><button id="zOut" aria-label="Afastar">−</button><button id="zFit" aria-label="Centralizar" style="font-size:15px">⌖</button><button id="zMe" aria-label="Minha posição" title="Minha posição" style="font-size:17px">📍</button></div>
+      <div class="meinfo hidden" id="satMe"></div>
       <div class="msg hidden" id="satMsg"></div>
       <div class="attr">Imagens © Esri, Maxar, Earthstar Geographics</div></div>
     <div class="row" style="margin-top:8px"><button class="btn sm" id="btnSatPng">⬇ Baixar imagem do satélite (alta resolução)</button></div>
@@ -325,7 +330,9 @@ canvas{max-width:100%}
   <div class="card">
     <h2>Relatório técnico</h2>
     <p class="hint">Gera o relatório no mesmo modelo do relatório de Guaramiranga (capa, sumário, apresentação, aspectos fisiográficos, recursos hídricos, serviços, conclusões, ficha de campo com gráficos e registro fotográfico) em Word, para revisar e assinar.</p>
-    <button class="btn pri" id="btnRel">📄 Gerar relatório (Word .docx)</button>
+    <div class="row"><button class="btn pri" id="btnRel">📄 Gerar relatório (Word .docx)</button>
+    <button class="btn" id="btnRelPdf">🖨 Relatório em PDF</button></div>
+    <p class="hint">PDF: abre a tela de impressão do celular — escolha <b>“Salvar como PDF”</b> como impressora.</p>
     <details class="cfg" style="margin-top:12px"><summary>Textos e dados do relatório</summary><div id="relForm"></div></details>
   </div>
   <div class="card">
@@ -334,10 +341,11 @@ canvas{max-width:100%}
       <button class="btn pri" id="btnPng">Imagem dos desenhos (PNG)</button>
       <button class="btn pri" id="btnGmaps">Pontos p/ Google Maps (CSV)</button>
       <button class="btn" id="btnCsv">Ficha de campo (CSV/Excel)</button>
-      <button class="btn" id="btnJson">Backup do estudo (JSON)</button>
+      <button class="btn" id="btnJson">Backup deste estudo</button>
+      <button class="btn pri" id="btnBkAll">💾 Backup de todos os estudos</button>
     </div>
     <p class="hint">“Pontos p/ Google Maps”: importe em <b>google.com/mymaps</b> → Criar mapa → Importar. Use Latitude/Longitude como posição e “Nome” como título; agrupe pela coluna “Classe” para colorir.</p>
-    <p class="hint" id="expHint">O CSV abre direto no Excel. O backup JSON pode ser importado em outro aparelho.</p>
+    <p class="hint" id="expHint">O CSV abre direto no Excel. O backup leva dados, textos e fotos. No celular, ele abre a tela de compartilhar: mande para o WhatsApp, e-mail ou Google Drive. Para recuperar (celular novo ou formatado), use “Importar backup” abaixo.</p>
     <h3>Importar backup</h3>
     <div class="row">
       <input type="file" id="fileImp" accept=".json,application/json">
@@ -491,6 +499,11 @@ function calcPerfil(ce, pf){
   const lim = num(ce.limiar); const corte = isFinite(lim) ? med*(1-lim/100) : NaN;
   let min=null; rows.forEach(r=>{ r.anom = isFinite(r.rho) && isFinite(corte) && r.rho<=corte; if (isFinite(r.rho) && (!min || r.rho<min.rho)) min=r;
     r.susp = isFinite(r.rho) && vals.length>=4 && isFinite(med) && (r.rho>med*5 || r.rho<med/5); });
+  // pico isolado: muito acima/abaixo das DUAS estacas vizinhas (zona condutiva verdadeira costuma pegar várias estacas)
+  const fin=rows.filter(r=>isFinite(r.rho));
+  fin.forEach((r,i)=>{ const a=fin[i-1], c=fin[i+1]; if(!a||!c) return; const lo=Math.min(a.rho,c.rho), hi=Math.max(a.rho,c.rho);
+    if (r.rho>hi*3 || r.rho<lo/3){ r.susp=true; r.viz=[a,c]; } });
+  rows.forEach(r=>{ if (r.susp && !r.viz){ const i=fin.indexOf(r); r.viz=[fin[i-1],fin[i+1]].filter(Boolean); } });
   return {rows, med, corte, min, n:vals.length, max: vals.length?Math.max(...vals):NaN};
 }
 
@@ -697,6 +710,13 @@ function refreshCETable(){
   });
   renderResumo(); renderStatus();
 }
+$('#ceTable').addEventListener('change', e=>{
+  const el=e.target; if(!el.dataset || el.dataset.lx===undefined) return;
+  setTimeout(()=>{ const pf=curPerf(); if(!pf) return; const r=calcPerfil(P().ce,pf).rows.find(z=>z.x===+el.dataset.lx);
+    if (r && r.susp){ const vz=(r.viz||[]).map(z=>fmt(z.rho,0)).join(' e ');
+      toast(`⚠ ${rotulo(r.x)}: ${fmt(r.rho,1)} Ω·m — muito ${r.rho>(r.viz&&r.viz[0]?r.viz[0].rho:0)?'acima':'abaixo'} ${vz?'das vizinhas ('+vz+')':'do resto do perfil'}. Confira a leitura.`);
+      if (navigator.vibrate) navigator.vibrate(120); } }, 60);
+});
 $('#ceTable').addEventListener('keydown', e=>{
   if (e.key!=='Enter') return; const el=e.target; if(!el.dataset || el.dataset.lx===undefined) return;
   e.preventDefault(); const ins=$$(`#ceTable input[data-k="${el.dataset.k}"]`); const i=ins.indexOf(el);
@@ -990,6 +1010,7 @@ function satInit(){
   box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
   box.addEventListener('wheel', e=>{ e.preventDefault(); satZoom(e.deltaY<0?1:-1); }, {passive:false});
   $('#zIn').addEventListener('pointerdown', e=>e.stopPropagation()); $('#zOut').addEventListener('pointerdown', e=>e.stopPropagation()); $('#zFit').addEventListener('pointerdown', e=>e.stopPropagation());
+  $('#zMe').addEventListener('pointerdown', e=>e.stopPropagation()); $('#zMe').addEventListener('click', satMeToggle);
   $('#zIn').addEventListener('click', ()=>satZoom(1)); $('#zOut').addEventListener('click', ()=>satZoom(-1)); $('#zFit').addEventListener('click', ()=>{ SAT.fitted=false; satRender(); });
   $('#satOp').addEventListener('input', ()=>satDraw());
   const ss=$('#satSrc'); ss.value=satSrc(); ss.addEventListener('change', ()=>{ try{ localStorage.setItem('gr_satsrc', ss.value); }catch(e){} SAT.ok=0; SAT.fail=0; SAT.msgClosed=false; box.querySelector('.tiles').innerHTML=''; satDraw(); toast('Imagem: '+SATSRC[ss.value].nome+'. Se a imagem ficar cinza ou borrada, volte para a padrão.'); });
@@ -1037,7 +1058,7 @@ function satDraw(){
   const S=(lat,lon)=>{ const q=wpx(lat,lon,z); return [q[0]-x0, q[1]-y0]; };
   if (SAT.ok===0 && SAT.fail>0){ // sem imagem: grade simples
     g.fillStyle='#e9e6df'; g.fillRect(0,0,W,H); }
-  satOverlay(g,W,H,z,x0,y0,SAT.lat);
+  satOverlay(g,W,H,z,x0,y0,SAT.lat); satMeDraw(g,z,x0,y0);
 }
 function satOverlay(g,W,H,z,x0,y0,lat0){
   const n=Math.pow(2,z); const S=(lat,lon)=>{ const q=wpx(lat,lon,z); return [q[0]-x0, q[1]-y0]; };
@@ -1090,6 +1111,35 @@ async function satBaixar(){
   if(!cv){ toast('Não foi possível baixar as imagens de satélite (sem internet?).'); return; }
   cv.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=((P().nome||'estudo').replace(/[\/–]+/g,'-').replace(/[^\wÀ-ú -]+/g,'').replace(/\s+/g,' ').trim()||'estudo')+' - satelite.png'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); toast('Imagem salva (2000×1400 px).'); },'image/png');
 }
+function satAlvo(){ const D=SAT.D||satData(); if (D.poco) return {ll:D.poco.ll, nome:'poço'}; if (D.lines.length) return {ll:D.lines[0].c, nome:'centro do '+D.lines[0].pf.nome}; const p=P(); const E=num(p.utmE),N=num(p.utmN); return (isFinite(E)&&isFinite(N))? {ll:ll(E,N), nome:'local do estudo'} : null; }
+function distRumo(a,b){ const R=6371000, r=Math.PI/180; const dla=(b[0]-a[0])*r, dlo=(b[1]-a[1])*r;
+  const h=Math.sin(dla/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dlo/2)**2; const d=2*R*Math.asin(Math.sqrt(h));
+  const y=Math.sin(dlo)*Math.cos(b[0]*r), x=Math.cos(a[0]*r)*Math.sin(b[0]*r)-Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos(dlo); const az=(Math.atan2(y,x)/r+360)%360;
+  return {d, az, dir:['N','NE','L','SE','S','SO','O','NO'][Math.round(az/45)%8]}; }
+function satMeToggle(){
+  const bt=$('#zMe');
+  if (SAT.watch!=null){ navigator.geolocation.clearWatch(SAT.watch); SAT.watch=null; SAT.me=null; bt.classList.remove('on'); $('#satMe').classList.add('hidden'); satDraw(); return; }
+  if (!navigator.geolocation){ toast('GPS indisponível neste aparelho'); return; }
+  bt.classList.add('on'); const box=$('#satMe'); box.classList.remove('hidden'); box.textContent='📍 Buscando sua posição…'; let first=true;
+  SAT.watch=navigator.geolocation.watchPosition(pos=>{
+    SAT.me={lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy||0};
+    if (first){ first=false; const al=satAlvo(); const dd= al? distRumo([SAT.me.lat,SAT.me.lon], al.ll).d : 1e9;
+      if (dd>1500){ SAT.lat=SAT.me.lat; SAT.lon=SAT.me.lon; SAT.z=Math.max(SAT.z,16); } // longe da área: centraliza em você
+      else if (al){ SAT.lat=(SAT.me.lat+al.ll[0])/2; SAT.lon=(SAT.me.lon+al.ll[1])/2; const W=$('#sat').clientWidth||400, H=$('#sat').clientHeight||480;
+        for (let z=19; z>=12; z--){ const a=wpx(SAT.me.lat,SAT.me.lon,z), b=wpx(al.ll[0],al.ll[1],z); if (Math.abs(b[0]-a[0])<W*0.7 && Math.abs(b[1]-a[1])<H*0.6){ SAT.z=z; break; } } } }
+    satMeInfo(); satDraw(); },
+    err=>{ toast(err && err.code===1 ? 'Permissão de localização negada' : 'Sem sinal de GPS agora'); if (err && err.code===1) satMeToggle(); },
+    {enableHighAccuracy:true, maximumAge:2000, timeout:30000});
+}
+function satMeInfo(){ const m=SAT.me, box=$('#satMe'); if(!m) return; const al=satAlvo();
+  if (!al){ box.textContent=`📍 Você está aqui (precisão ±${Math.round(m.acc)} m)`; return; }
+  const r=distRumo([m.lat,m.lon], al.ll); const dist = r.d<1000? Math.round(r.d)+' m' : fmt(r.d/1000,2)+' km';
+  box.textContent = r.d<=Math.max(m.acc,4) ? `✅ Você está no ${al.nome} (±${Math.round(m.acc)} m)` : `➜ ${al.nome[0].toUpperCase()+al.nome.slice(1)}: ${dist} para ${r.dir} (${Math.round(r.az)}°) · precisão ±${Math.round(m.acc)} m`; }
+function satMeDraw(g,z,x0,y0){ const m=SAT.me; if(!m) return; const n=Math.pow(2,z); const q=wpx(m.lat,m.lon,z); const x=q[0]-x0, y=q[1]-y0;
+  const mpp=156543.03392*Math.cos(m.lat*Math.PI/180)/n; const al=satAlvo();
+  if (al){ const t=wpx(al.ll[0],al.ll[1],z); g.setLineDash([7,6]); g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=3; g.beginPath(); g.moveTo(x,y); g.lineTo(t[0]-x0,t[1]-y0); g.stroke(); g.strokeStyle='#1a73e8'; g.lineWidth=1.5; g.stroke(); g.setLineDash([]); }
+  const ra=m.acc/mpp; if (ra>8){ g.beginPath(); g.arc(x,y,ra,0,Math.PI*2); g.fillStyle='rgba(26,115,232,.15)'; g.fill(); g.strokeStyle='rgba(26,115,232,.6)'; g.lineWidth=1; g.stroke(); }
+  g.beginPath(); g.arc(x,y,9,0,Math.PI*2); g.fillStyle='#fff'; g.fill(); g.beginPath(); g.arc(x,y,6.5,0,Math.PI*2); g.fillStyle='#1a73e8'; g.fill(); }
 function satMsg(){
   const m=$('#satMsg');
   if (SAT.ok===0 && SAT.fail>0){ if (SAT.msgClosed) return; m.innerHTML='<span style="float:right;font-weight:700;cursor:pointer;padding:0 4px" id="satMsgX">×</span>As imagens de satélite não carregaram aqui (sem internet ou bloqueio da página dentro do Claude). As estacas e cores continuam no lugar certo; use o botão <b>Google Maps</b> abaixo ou abra o app pelo arquivo no navegador do celular.'; m.classList.remove('hidden'); const x=$('#satMsgX'); if(x){ x.onpointerdown=e=>e.stopPropagation(); x.onclick=()=>{ SAT.msgClosed=true; m.classList.add('hidden'); }; } if(!SAT.bgDone){ SAT.bgDone=true; satDraw(); } }
@@ -1260,14 +1310,41 @@ function gmapsCsv(){
 }
 $('#btnGmaps').addEventListener('click', ()=>{ const r=gmapsCsv(); if(!r.n){ toast('Informe as coordenadas de E05 e D05 dos perfis primeiro'); return; } salvar(fileBase()+'_google_maps.csv', r.txt, r.txt); });
 $('#btnCsv').addEventListener('click', ()=>{ const t=csvExport(); salvar(fileBase()+'_ficha.csv', t, t); });
-$('#btnJson').addEventListener('click', async ()=>{ const fs=await fotosDe(P().id); const t=JSON.stringify({georesist:1, estudo:P(), fotos:fs.map(f=>({legenda:f.legenda,data:f.data,ordem:f.ordem,img:f.img}))}); salvar(fileBase()+'_backup.json', t, t.length<400000?t:undefined); });
+async function pacoteEstudo(p){ const fs=await fotosDe(p.id); return {estudo:p, fotos:fs.map(f=>({legenda:f.legenda,data:f.data,ordem:f.ordem,img:f.img}))}; }
+async function enviarArquivo(nome, texto, tipo='application/json'){
+  try{ const fl=new File([texto], nome, {type:tipo}); if (navigator.canShare && navigator.canShare({files:[fl]})){ await navigator.share({files:[fl], title:nome}); return true; } }catch(e){ if (e && e.name==='AbortError') return false; }
+  await salvar(nome, texto, texto.length<400000?texto:undefined); return true; }
+function marcaBackup(){ S.lastBackup=Date.now(); saveLocal(); renderBk(); }
+$('#btnJson').addEventListener('click', async ()=>{ const t=JSON.stringify(Object.assign({georesist:1}, await pacoteEstudo(P()))); if (await enviarArquivo(fileBase()+'_backup.json', t) && Object.keys(S.projects).length===1) marcaBackup(); });
+async function backupTudo(){ toast('Preparando backup…'); const est=[]; for (const id of Object.keys(S.projects)) est.push(await pacoteEstudo(S.projects[id]));
+  const t=JSON.stringify({georesist:2, criado:new Date().toISOString(), cfg:S.cfg||{}, estudos:est}); const d=new Date();
+  const nome=`GeoResist backup ${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  if (await enviarArquivo(nome, t)) marcaBackup(); }
+$('#btnBkAll').addEventListener('click', backupTudo);
+function renderBk(){ const el=$('#bkInfo'); if(!el) return; const ids=Object.keys(S.projects); const ult=S.lastBackup||0;
+  const mud=ids.some(id=>(S.projects[id].updatedAt||0)>ult && !S.projects[id].fotosExemplo);
+  const quando= ult? new Date(ult).toLocaleDateString('pt-BR') : null;
+  const velho = !ult || (Date.now()-ult>7*864e5);
+  el.innerHTML = (mud && velho) ? `<div class="note w" style="margin-top:8px">⚠ ${quando?`Último backup em ${quando}, e houve mudanças desde então.`:'Nenhum backup feito ainda.'} Os estudos ficam só neste celular: se ele quebrar ou for formatado, tudo se perde. <div style="margin-top:6px"><button class="btn sm pri" id="btnBkNow">💾 Fazer backup agora</button></div></div>`
+    : `<p class="hint" style="margin-top:4px">${quando?`✓ Último backup: ${quando}.`:''}</p>`;
+  const bt=$('#btnBkNow'); if (bt) bt.onclick=backupTudo; }
+
 $('#btnPng').addEventListener('click', async ()=>{ const cv=await buildPng(true); cv.toBlob(b=>{ if(b) salvar(fileBase()+'_desenhos.png', b); }, 'image/png'); });
 $('#fileImp').addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>importar(rd.result); rd.readAsText(f); e.target.value=''; });
 $('#btnColar').addEventListener('click', ()=>showText('Colar backup','Cole aqui o conteúdo do arquivo JSON de backup.','', t=>importar(t)));
+function importa1(o){ const p=o.estudo||o; if(!p||!p.ce||!p.sev) return 'inv';
+  const ex=S.projects[p.id]; if (ex && (ex.updatedAt||0)>=(p.updatedAt||0)) return 'igual';
+  if (ex || !p.id){ p.id=uid(); p.nome=(p.nome||'Importado')+(ex?' (backup)':''); }
+  p.nome=p.nome||'Importado'; p.fotosExemplo=false; S.projects[p.id]=p; S.cur=p.id;
+  (o.fotos||[]).forEach((f,i)=>{ const nf={id:uid(),projeto:p.id,ordem:f.ordem??i,legenda:f.legenda||'',data:f.data||'',img:f.img,updatedAt:Date.now()}; fotoPut(nf).then(()=>cloudFoto(nf)); });
+  cloudSave(p); return 'ok'; }
 function importar(txt){
-  try{ const o=JSON.parse(txt); const p=o.estudo||o; if(!p||!p.ce||!p.sev) throw 0; p.id=uid(); p.updatedAt=Date.now(); p.nome=(p.nome||'Importado'); p.fotosExemplo=false; S.projects[p.id]=p; S.cur=p.id; touch(); (o.fotos||[]).forEach((f,i)=>{ const nf={id:uid(),projeto:p.id,ordem:f.ordem??i,legenda:f.legenda||'',data:f.data||'',img:f.img,updatedAt:Date.now()}; fotoPut(nf).then(()=>cloudFoto(nf)); }); renderAll(); toast('Estudo importado'); }
-  catch(e){ toast('Arquivo inválido'); }
-}
+  let o; try{ o=JSON.parse(txt); }catch(e){ toast('Arquivo inválido'); return; }
+  const lista = Array.isArray(o.estudos) ? o.estudos : [o]; const c={ok:0,igual:0,inv:0}; lista.forEach(x=>c[importa1(x)]++);
+  if (o.cfg && o.cfg.empresa){ S.cfg=S.cfg||{}; S.cfg.empresa=Object.assign({}, o.cfg.empresa, S.cfg.empresa||{}); }
+  if (!c.ok && !c.igual){ toast('Arquivo inválido'); return; }
+  saveLocal(); renderAll(); if (typeof renderRelForm==='function') renderRelForm();
+  toast(`${c.ok} estudo${c.ok!==1?'s':''} importado${c.ok!==1?'s':''}`+(c.igual?` · ${c.igual} já estava${c.igual>1?'m':''} atualizado${c.igual>1?'s':''}`:'')); }
 function svgToImg(svgStr){ return new Promise(res=>{ const img=new Image(); const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml'})); img.onload=()=>{ res(img); setTimeout(()=>URL.revokeObjectURL(url),1000); }; img.onerror=()=>res(null); img.src=url; }); }
 async function buildPng(full){
   const p=P(), ce=p.ce, sc=curScale(); const S2=2; const W=900;
@@ -1367,19 +1444,33 @@ function latLonToUTM(lat, lon, zone){
   if (lat<0) Nn+=10000000;
   return {E, N:Nn, zone};
 }
+// GPS: faz a média de várias leituras (até ~20 s) para melhorar a precisão. Tocar de novo encerra e usa o que já tem.
+const GPSM={};
 document.addEventListener('click', e=>{
   const b=e.target.closest('[data-gps]'); if(!b) return; e.preventDefault();
   if (!navigator.geolocation){ toast('GPS indisponível aqui — digite as coordenadas'); return; }
-  const lado=b.dataset.gps; const old=b.textContent; b.textContent='📍 Buscando sinal…'; b.disabled=true;
-  navigator.geolocation.getCurrentPosition(pos=>{
-    b.textContent=old; b.disabled=false;
-    const z=String(P().zona||'').match(/(\d{1,2})/); const u=latLonToUTM(pos.coords.latitude,pos.coords.longitude, z?+z[1]:0);
-    const pf=curPerf(); pf[lado==='E'?'eE':'dE']=String(Math.round(u.E)); pf[lado==='E'?'eN':'dN']=String(Math.round(u.N));
-    if (!P().zona) P().zona=u.zone+(pos.coords.latitude<0?'M':'N');
-    renderPerfFields(); refreshCETable(); renderCharts(); touch();
-    toast(`${lado}05: ${Math.round(u.E)}E / ${Math.round(u.N)}N (precisão ±${Math.round(pos.coords.accuracy)} m)`);
-  }, err=>{ b.textContent=old; b.disabled=false; toast(err && err.code===1 ? 'Permissão de localização negada — digite as coordenadas' : 'Sem sinal de GPS agora — tente de novo ou digite'); },
-  {enableHighAccuracy:true, timeout:25000, maximumAge:0});
+  const lado=b.dataset.gps;
+  if (GPSM[lado]){ GPSM[lado].fim(); return; }
+  const old=b.dataset.txt||b.textContent; b.dataset.txt=old; const L=[]; let t0=Date.now();
+  const st=()=>{ const best=L.length?Math.min(...L.map(o=>o.acc)):null; b.textContent = L.length ? `⏹ Medindo… ±${Math.round(best)} m · ${L.length} leitura${L.length>1?'s':''} (toque p/ usar)` : '📍 Buscando sinal… (toque p/ cancelar)'; };
+  const M={ id:null, tmo:null };
+  M.fim=()=>{ navigator.geolocation.clearWatch(M.id); clearTimeout(M.tmo); delete GPSM[lado]; b.textContent=old; b.classList.remove('pri');
+    if (!L.length){ toast('Sem sinal de GPS agora — tente de novo ou digite'); return; }
+    const best=Math.min(...L.map(o=>o.acc)); const U=L.filter(o=>o.acc<=Math.max(best*2,best+3)); let sw=0,la=0,lo=0; U.forEach(o=>{ const w=1/(o.acc*o.acc); sw+=w; la+=w*o.lat; lo+=w*o.lon; }); la/=sw; lo/=sw;
+    const acc=Math.max(best/Math.sqrt(U.length), 1);
+    const z=String(P().zona||'').match(/(\d{1,2})/); const u=latLonToUTM(la,lo, z?+z[1]:0);
+    const E=String(Math.round(u.E)), N=String(Math.round(u.N));
+    if (!P().zona) P().zona=u.zone+(la<0?'M':'N');
+    if (lado==='P'){ P().utmE=E; P().utmN=N; renderAll(); }
+    else { const pf=curPerf(); pf[lado==='E'?'eE':'dE']=E; pf[lado==='E'?'eN':'dN']=N; renderPerfFields(); refreshCETable(); renderCharts(); }
+    touch(); toast(`${lado==='P'?'Local':lado+'05'}: ${E}E / ${N}N · precisão ±${Math.round(acc)} m (média de ${U.length} leitura${U.length>1?'s':''})`); };
+  GPSM[lado]=M; b.classList.add('pri'); st();
+  M.id=navigator.geolocation.watchPosition(pos=>{ L.push({lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy||99}); st();
+      const best=Math.min(...L.map(o=>o.acc)); if ((L.length>=6 && best<=5) || L.length>=12 || Date.now()-t0>20000) M.fim(); },
+    err=>{ if (err && err.code===1){ navigator.geolocation.clearWatch(M.id); clearTimeout(M.tmo); delete GPSM[lado]; b.textContent=old; b.classList.remove('pri'); toast('Permissão de localização negada — libere nas configurações do navegador ou digite'); } },
+    {enableHighAccuracy:true, timeout:30000, maximumAge:0});
+  const fimT=()=>{ if (!GPSM[lado]) return; if (L.length || Date.now()-t0>=30000) M.fim(); else M.tmo=setTimeout(fimT, 2000); };
+  M.tmo=setTimeout(fimT, 20000);
 });
 function renderStatus(){
   const ce=P().ce, pf=curPerf(); if(!pf) return; const r=calcPerfil(ce,pf); const tot=r.rows.length;
@@ -1496,6 +1587,10 @@ function renderRelForm(){
                      : `<label class="f">${l}<input data-rel="${k}" value="${esc(r[k]||'')}" placeholder="${esc(ph)}"></label>`; }).join('')}</div>
     <h3>Empresa e responsável (vale para todos os estudos)</h3>
     <div class="grid">${EMPCAMPOS.map(([k,l])=>`<label class="f">${l}<input data-emp="${k}" value="${esc(e[k]||'')}"></label>`).join('')}</div>
+    <div class="grid" style="margin-top:8px">${[['logo','Logotipo da empresa (capa e última página)'],['assin','Assinatura do responsável (foto da assinatura em papel branco)']].map(([k,l])=>`<div class="f">${l}
+      <div style="border:1px dashed var(--line);border-radius:8px;padding:8px;min-height:70px;display:flex;align-items:center;justify-content:center;background:#fff">${e[k]?`<img src="${e[k]}" style="max-height:80px;max-width:100%">`:'<span class="hint">nenhuma imagem</span>'}</div>
+      <div class="row" style="margin-top:6px"><label class="btn sm" style="cursor:pointer">${e[k]?'Trocar':'Escolher'} imagem<input type="file" accept="image/*" class="hidden" data-empimg="${k}"></label>${e[k]?`<button class="btn sm dan" data-empdel="${k}">Remover</button>`:''}</div></div>`).join('')}</div>
+    <p class="hint">A assinatura tem o fundo removido automaticamente e entra acima do nome do responsável. O registro no CREA vai abaixo do nome.</p>
     <p class="hint">Campos vazios usam o valor automático (mostrado em cinza). Os textos do município vêm do último estudo editado — revise ao mudar de município.</p>`;
 }
 document.addEventListener('input', e=>{
@@ -1506,27 +1601,34 @@ document.addEventListener('input', e=>{
 
 /* ---------- docx: XML ---------- */
 const X = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-function R(t,o={}){ const pr=`${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.caps?'<w:caps/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}${o.sz?`<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>`:''}${o.u?'<w:u w:val="single"/>':''}${o.sup?'<w:vertAlign w:val="superscript"/>':''}`;
+function R(t,o={}){ if (RELMODE==='html'){ const st=`${o.b?'font-weight:bold;':''}${o.i?'font-style:italic;':''}${o.u?'text-decoration:underline;':''}${o.caps?'text-transform:uppercase;':''}${o.color?`color:#${o.color};`:''}${o.sz?`font-size:${o.sz/2}pt;`:''}`; const h=esc(String(t)).replace(/\n/g,'<br>'); return st?`<span style="${st}">${h}</span>`:h; }
+  const pr=`${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.caps?'<w:caps/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}${o.sz?`<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>`:''}${o.u?'<w:u w:val="single"/>':''}${o.sup?'<w:vertAlign w:val="superscript"/>':''}`;
   return String(t).split('\n').map((ln,i)=>`${i?'<w:r><w:br/></w:r>':''}<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}<w:t xml:space="preserve">${X(ln)}</w:t></w:r>`).join(''); }
 function Pa(content,o={}){
   const runs = Array.isArray(content)? content.map(c=>typeof c==='string'?R(c,o.r||{}):R(c[0],c[1]||{})).join('') : (typeof content==='string'? R(content,o.r||{}) : '');
   const ppr=`${o.style?`<w:pStyle w:val="${o.style}"/>`:''}${o.keep?'<w:keepNext/>':''}${o.brk?'<w:pageBreakBefore/>':''}${o.border?'<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="000000"/></w:pBdr>':''}<w:spacing w:before="${o.before??0}" w:after="${o.after??160}" w:line="${o.line??360}" w:lineRule="auto"/>${o.ind?`<w:ind w:left="${o.ind}" w:hanging="${o.hang||0}"/>`:''}${o.first?`<w:ind w:firstLine="${o.first}"/>`:''}<w:jc w:val="${o.jc||'both'}"/>`;
+  if (RELMODE==='html'){ const jc={both:'justify',left:'left',center:'center',right:'right'}[o.jc||'both']||'justify';
+    const st=`margin:${(o.before??0)/20}pt 0 ${(o.after??160)/20}pt;text-align:${jc};line-height:${((o.line??360)/240*1.15).toFixed(2)};${o.first?`text-indent:${o.first/20}pt;`:''}${o.ind?`padding-left:${o.ind/20}pt;text-indent:-${(o.hang||0)/20}pt;`:''}${o.border?'border-bottom:1px solid #000;':''}${o.brk?'break-before:page;':''}${o.keep?'break-after:avoid;':''}`;
+    return `<p style="${st}">${runs||'&nbsp;'}${o.raw||''}</p>`; }
   return `<w:p><w:pPr>${ppr}</w:pPr>${runs}${o.raw||''}</w:p>`;
 }
-const PB = () => '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+const PB = () => RELMODE==='html' ? '<div class="pb"></div>' : '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
 function textoPar(t){ return String(t||'').split(/\n\s*\n/).map(s=>s.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean).map(s=>Pa(s,{first:709})).join(''); }
 function cel(t,o={}){ // o: w, fill, b, color, jc, vm ('restart'|'continue'), sz
+  if (RELMODE==='html'){ const st=`width:${(o.w||1500)/20}pt;${o.fill?`background:#${o.fill};`:''}${o.vm==='restart'?'border-bottom:0;':''}${o.vm==='continue'?'border-top:0;border-bottom:0;':''}`;
+    return `<td${o.span?` colspan="${o.span}"`:''} style="${st}">${Pa(o.vm==='continue'?'':String(t),{jc:o.jc||'center',after:20,before:20,line:240,r:{b:o.b,color:o.color,sz:o.sz||18}})}</td>`; }
   const tc=`<w:tcPr><w:tcW w:w="${o.w||1500}" w:type="dxa"/>${o.span?`<w:gridSpan w:val="${o.span}"/>`:''}${o.vm?`<w:vMerge${o.vm==='restart'?' w:val="restart"':''}/>`:''}${o.fill?`<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>`:''}<w:vAlign w:val="center"/></w:tcPr>`;
   return `<w:tc>${tc}${Pa(o.vm==='continue'?'':String(t),{jc:o.jc||'center',after:40,before:40,line:240,r:{b:o.b,color:o.color,sz:o.sz||18}})}</w:tc>`;
 }
 function tabela(linhas, larguras, o={}){
   const tot=larguras.reduce((a,b)=>a+b,0);
+  if (RELMODE==='html') return `<table class="${o.semBorda?'sb':''}" style="width:${tot/20}pt">${linhas.map(l=>{ let col=0; return `<tr>${l.map(c=>{ const oo=typeof c==='object'?c:{}; const sp=oo.span||1; const w=larguras.slice(col,col+sp).reduce((a,b)=>a+b,0); col+=sp; return cel(c.t??c, Object.assign({},oo,{w})); }).join('')}</tr>`; }).join('')}</table>`;
   const bd=`<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="single" w:sz="6" w:space="0" w:color="${o.cor||'000000'}"/>`).join('')}</w:tblBorders>`;
   return `<w:tbl><w:tblPr><w:tblW w:w="${tot}" w:type="dxa"/><w:jc w:val="center"/>${o.semBorda?'':bd}<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${larguras.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${
     linhas.map(l=>{ let col=0; return `<w:tr>${l.map(c=>{ const o=typeof c==='object'?c:{}; const sp=o.span||1; const w=larguras.slice(col,col+sp).reduce((a,b)=>a+b,0); col+=sp; return cel(c.t??c, Object.assign({},o,{w})); }).join('')}</w:tr>`; }).join('')}</w:tbl>`;
 }
 let IMGN=0;
-function imgXml(rid, cxCm, cyCm){ const cx=Math.round(cxCm*360000), cy=Math.round(cyCm*360000); const id=++IMGN;
+function imgXml(rid, cxCm, cyCm){ if (RELMODE==='html') return `<img src="${RELIMG[rid]}" style="width:${cxCm.toFixed(2)}cm;height:${cyCm.toFixed(2)}cm">`; const cx=Math.round(cxCm*360000), cy=Math.round(cyCm*360000); const id=++IMGN;
   return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="Imagem ${id}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${id}" name="img${id}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`; }
 
 /* ---------- zip (sem compressão) ---------- */
@@ -1548,9 +1650,32 @@ async function canvasPng(cv){ return b64u8(cv.toDataURL('image/png')); }
 async function svgPng(svg, w, h){ const im=await svgToImg(svg.replace('class="chart"',`width="${w}" height="${h}"`)); const c=document.createElement('canvas'); c.width=w*2; c.height=h*2; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); if(im) g.drawImage(im,0,0,c.width,c.height); return {u:await canvasPng(c), w, h}; }
 
 /* ---------- montagem ---------- */
+function carregaImg(src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; }); }
+async function prepImagem(file, tipo){
+  const src=await new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); }); const im=await carregaImg(src); if(!im) return null;
+  const mx = tipo==='logo'? 800 : 1200; const sc=Math.min(1, mx/Math.max(im.width,im.height));
+  let w=Math.round(im.width*sc), h=Math.round(im.height*sc); const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d'); g.drawImage(im,0,0,w,h);
+  if (tipo==='assin'){ // tira o fundo do papel, deixa só a tinta, e recorta
+    const d=g.getImageData(0,0,w,h), px=d.data; const lum=[]; for(let i=0;i<px.length;i+=4) lum.push(0.299*px[i]+0.587*px[i+1]+0.114*px[i+2]);
+    const ord=lum.slice().sort((a,b)=>a-b); const bg=ord[Math.floor(ord.length*0.6)]; const thr=bg*0.82;
+    let x1=w,y1=h,x2=0,y2=0;
+    for (let i=0,k=0;i<px.length;i+=4,k++){ const a=Math.max(0,Math.min(1,(thr-lum[k])/(thr*0.45))); if (a>0.15){ const x=k%w, y=(k/w)|0; if(x<x1)x1=x; if(x>x2)x2=x; if(y<y1)y1=y; if(y>y2)y2=y; }
+      px[i]=Math.round(px[i]*0.5); px[i+1]=Math.round(px[i+1]*0.5); px[i+2]=Math.round(px[i+2]*0.6); px[i+3]=Math.round(255*a); }
+    g.putImageData(d,0,0);
+    if (x2>x1 && y2>y1){ const m=6; x1=Math.max(0,x1-m); y1=Math.max(0,y1-m); x2=Math.min(w-1,x2+m); y2=Math.min(h-1,y2+m);
+      const c2=document.createElement('canvas'); c2.width=x2-x1+1; c2.height=y2-y1+1; c2.getContext('2d').drawImage(c,x1,y1,c2.width,c2.height,0,0,c2.width,c2.height); return c2.toDataURL('image/png'); }
+  }
+  return c.toDataURL('image/png'); }
+document.addEventListener('change', async e=>{ const k=e.target.dataset && e.target.dataset.empimg; if(!k) return; const f=e.target.files[0]; if(!f) return;
+  const u=await prepImagem(f,k); if(!u){ toast('Não consegui ler a imagem'); return; } cfgEmpresa()[k]=u; saveLocal(); renderRelForm(); toast(k==='logo'?'Logotipo salvo':'Assinatura salva'); });
+document.addEventListener('click', e=>{ const b=e.target.closest('[data-empdel]'); if(!b) return; delete cfgEmpresa()[b.dataset.empdel]; S.cfg.empresa[b.dataset.empdel]=''; saveLocal(); renderRelForm(); });
+async function imgCm(dataUrl, maxW, maxH){ const im=await carregaImg(dataUrl); if(!im) return null; let w=maxW, h=maxW*im.height/im.width; if (h>maxH){ h=maxH; w=maxH*im.width/im.height; } return {w,h}; }
+// ---- modo HTML (para PDF): as mesmas funções do Word geram HTML ----
+let RELMODE='docx'; const RELIMG={};
+const u8b64 = u => { let s=''; for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null, u.subarray(i,i+0x8000)); return btoa(s); };
 async function gerarRelatorio(){
   const p=P(), ce=p.ce, r=relDe(p), a=relAuto(p), e=cfgEmpresa(); const v=k=> (r[k]!==undefined && String(r[k]).trim()!=='') ? r[k] : (a[k]||'');
-  IMGN=0; const midia=[]; const rel=[]; const addImg=(u,ext)=>{ const n=midia.length+1; const rid='rIdImg'+n; midia.push({name:`word/media/img${n}.${ext}`, data:u}); rel.push(`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img${n}.${ext}"/>`); return rid; };
+  IMGN=0; const midia=[]; const rel=[]; const addImg=(u,ext)=>{ const n=midia.length+1; const rid='rIdImg'+n; if (RELMODE==='html') RELIMG[rid]=`data:image/${ext==='jpeg'?'jpeg':ext};base64,`+u8b64(u); midia.push({name:`word/media/img${n}.${ext}`, data:u}); rel.push(`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img${n}.${ext}"/>`); return rid; };
   const local=p.local||''; const cidade=local.split('/')[0].trim();
   const d=p.data? new Date(p.data+'T12:00') : new Date();
   const mesAno=`${MESES[d.getMonth()][0].toUpperCase()+MESES[d.getMonth()].slice(1)} de ${d.getFullYear()}`;
@@ -1558,7 +1683,9 @@ async function gerarRelatorio(){
   const cliente=v('cliente');
   let B='';
   // CAPA
-  B+=Pa('',{after:1200})+Pa([['RELATÓRIO TÉCNICO',{b:true,u:true,sz:32}]],{jc:'center',after:1600});
+  let logoP=''; if (e.logo){ const dm=await imgCm(e.logo,6,3); if (dm){ const rl=addImg(b64u8(e.logo),'png'); logoP=Pa('',{jc:'center',raw:imgXml(rl,dm.w,dm.h),after:0,line:240}); } }
+  B+= logoP ? logoP+Pa('',{after:500}) : Pa('',{after:1200});
+  B+=Pa([['RELATÓRIO TÉCNICO',{b:true,u:true,sz:32}]],{jc:'center',after:1600});
   B+=Pa([['ESTUDO GEOFÍSICO PARA LOCAÇÃO',{b:true,sz:28}]],{jc:'center',after:60})+Pa([['DE POÇO TUBULAR PROFUNDO',{b:true,sz:28}]],{jc:'center',after:60})+Pa([['MÉTODO ELETRORRESISTIVIDADE',{b:true,sz:28}]],{jc:'center',after:1400});
   B+=Pa([[cliente.toUpperCase(),{b:true,sz:28}]],{jc:'center',after:60})+Pa([[local,{b:true,sz:26}]],{jc:'center',after:4200});
   B+=Pa([[`${cidade}, ${mesAno}`,{b:true,i:true,sz:20}]],{jc:'center'});
@@ -1614,7 +1741,8 @@ async function gerarRelatorio(){
   if (coord) B+=bl([['O Poço tubular profundo deverá ser construído no local piquetado com as seguintes coordenadas: ',{b:true}],`${v('poE')}E / ${v('poN')}N.`]);
   B+=bl([[`O Poço tubular profundo deverá ser construído com profundidade em torno de ${v('prof')} metros com diâmetro de ${v('diam')} (polegadas).`,{b:true}]]);
   B+=bl(['Recomendamos também o monitoramento dos níveis de água (NE e ND) do poço explorado, visando obter elementos dos parâmetros hidrodinâmicos que permitam, se necessário, fazer uma reavaliação das condições de exploração.']);
-  B+=Pa('',{after:900})+Pa('______________________________',{jc:'left',after:0,line:240})+Pa([[e.respNome,{b:true,sz:18}]],{jc:'left',after:0,line:240})+Pa([[e.respTit,{i:true,sz:18}]],{jc:'left',after:0,line:240})+Pa([[e.respCrea,{i:true,sz:18}]],{jc:'left',line:240});
+  let assP=''; if (e.assin){ const dm=await imgCm(e.assin,6,2.2); if (dm){ const ra=addImg(b64u8(e.assin),'png'); assP=Pa('',{jc:'left',raw:imgXml(ra,dm.w,dm.h),after:0,line:240}); } }
+  B+=Pa('',{after:assP?300:900})+assP+Pa('______________________________',{jc:'left',after:0,line:240})+Pa([[e.respNome,{b:true,sz:18}]],{jc:'left',after:0,line:240})+Pa([[e.respTit,{i:true,sz:18}]],{jc:'left',after:0,line:240})+Pa([[e.respCrea,{i:true,sz:18}]],{jc:'left',line:240});
   // 6.0 ANEXOS
   B+=PB()+Pa([['6.0) ANEXOS',{b:true}]],{after:240,jc:'left'})+Pa('6.1) Caminhamento elétrico',{ind:700,after:60,jc:'left'})+(temFotos?Pa('6.2) Registro Fotográfico',{ind:700,jc:'left'}):'');
   const m=modo(); const sc=curScale();
@@ -1648,8 +1776,9 @@ async function gerarRelatorio(){
       const rid=addImg(u,'jpeg'); B+=Pa('',{jc:'center',raw:imgXml(rid,w,h),after:60,line:240,brk:i>0&&i%2===0,keep:true})+Pa([[`Foto ${i+1}${f.legenda?' – '+f.legenda:''}`,{sz:18}]],{jc:'center',after:400}); }
   }
   // página final da empresa
-  B+=PB()+Pa('',{after:2400})+Pa([[e.nome,{b:true,sz:26}]],{jc:'center',after:200})+Pa([[e.end,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[`Fones: ${e.fones}`,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[`CNPJ: ${e.cnpj}`,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[e.site,{b:true,i:true,sz:20,color:'1F4E9E'}]],{jc:'center'});
+  B+=PB()+Pa('',{after:logoP?1200:2400})+logoP+Pa('',{after:logoP?400:0})+Pa([[e.nome,{b:true,sz:26}]],{jc:'center',after:200})+Pa([[e.end,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[`Fones: ${e.fones}`,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[`CNPJ: ${e.cnpj}`,{b:true,sz:20}]],{jc:'center',after:60})+Pa([[e.site,{b:true,i:true,sz:20,color:'1F4E9E'}]],{jc:'center'});
 
+  if (RELMODE==='html') return B;
   const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
   const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${B}<w:sectPr><w:headerReference w:type="default" r:id="rIdH1"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1701" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr></w:body></w:document>`;
   const header=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${NS}>${Pa('',{border:true,after:0,line:240})}</w:hdr>`;
@@ -1662,6 +1791,23 @@ async function gerarRelatorio(){
   const files=[{name:'[Content_Types].xml',data:enc.encode(ct)},{name:'_rels/.rels',data:enc.encode(rels)},{name:'word/document.xml',data:enc.encode(doc)},{name:'word/styles.xml',data:enc.encode(styles)},{name:'word/header1.xml',data:enc.encode(header)},{name:'word/_rels/document.xml.rels',data:enc.encode(drels)},{name:'docProps/core.xml',data:enc.encode(core)}].concat(midia);
   return zip(files);
 }
+$('#btnRelPdf').addEventListener('click', async ()=>{
+  const b=$('#btnRelPdf'); const old=b.textContent; b.textContent='Montando PDF…'; b.disabled=true;
+  try{ RELMODE='html'; const B=await gerarRelatorio(); RELMODE='docx';
+    const tit=('Relatorio Geofisico - '+(relAuto(P()).cliente||'estudo')+' - '+(P().local||'')).replace(/[\\/:*?"<>|]+/g,'-');
+    const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(tit)}</title><style>
+@page{size:A4;margin:2.5cm 2.5cm 2.5cm 3cm} html,body{margin:0;background:#fff} body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#000}
+p{margin:0;orphans:2;widows:2} table{border-collapse:collapse;margin:0 auto;break-inside:auto} tr{break-inside:avoid} td{border:1px solid #000;padding:1pt 3pt;vertical-align:middle}
+table.sb td{border:0} .pb{break-after:page;height:0} img{max-width:100%;break-inside:avoid}
+@media screen{body{padding:16px;max-width:17cm;margin:auto}}
+</style></head><body>${B}</body></html>`;
+    let fr=$('#relFrame'); if (fr) fr.remove(); fr=document.createElement('iframe'); fr.id='relFrame'; fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(fr); const w=fr.contentWindow; w.document.open(); w.document.write(html); w.document.close();
+    await new Promise(r=>setTimeout(r,300)); await Promise.all([...w.document.images].map(im=>im.complete?0:new Promise(r=>{ im.onload=im.onerror=r; })));
+    w.focus(); w.print(); }
+  catch(err){ RELMODE='docx'; console.error(err); toast('Não foi possível montar o PDF'); }
+  finally{ b.textContent=old; b.disabled=false; }
+});
 $('#btnRel').addEventListener('click', async ()=>{
   const b=$('#btnRel'); const old=b.textContent; b.textContent='Gerando relatório…'; b.disabled=true;
   try{ const blob=await gerarRelatorio(); const nome=('Relatorio Geofisico - '+(relAuto(P()).cliente||'estudo')+' - '+(P().local||'')).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\- ]+/g,' ').replace(/\s+/g,' ').trim()+'.docx';
@@ -1787,7 +1933,7 @@ function showText(title, hint, text, onOk){ const m=$('#modal'); $('#mTitle').te
   $('#mCancel').onclick=()=>m.classList.add('hidden'); }
 
 /* ===================== início ===================== */
-function renderAll(){ renderProjSel(); bindFields(); renderPills(); renderPerfFields(); renderCETable(); renderSevTable(); renderResumo(); renderCharts(); }
+function renderAll(){ renderBk(); renderProjSel(); bindFields(); renderPills(); renderPerfFields(); renderCETable(); renderSevTable(); renderResumo(); renderCharts(); }
 let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(renderCharts,200); });
 loadLocal(); renderAll(); iniciaMun().then(()=>{ if(!$('#tab-exp').classList.contains('hidden')) renderRelForm(); }); try{ const lt=localStorage.getItem('georesist.tab'); if(lt && $('#tab-'+lt)) showTab(lt); }catch(e){}
 setTimeout(cloudInit, 0);
