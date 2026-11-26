@@ -163,7 +163,7 @@ canvas{max-width:100%}
     <h2>Dados do estudo</h2>
     <div class="grid">
       <label class="f" style="grid-column:1/-1">Cliente / Obra<input data-p="nome"></label>
-      <label class="f">Local / Município<input data-p="local"></label>
+      <label class="f">Local / Município<input data-p="local" list="dlMun" placeholder="Ex.: Pacoti / CE"><datalist id="dlMun"></datalist><span class="hint" id="munInfo" style="font-size:11px"></span></label>
       <label class="f">Data<input type="date" data-p="data"></label>
       <label class="f">UTM E (m)<input inputmode="decimal" data-p="utmE"></label>
       <label class="f">UTM N (m)<input inputmode="decimal" data-p="utmN"></label>
@@ -595,7 +595,7 @@ document.addEventListener('input', e=>{
 });
 $('#vista').addEventListener('change', e=>{ P().ce.vista=e.target.value; renderCharts(); touch(); });
 $('#escala').addEventListener('change', e=>{ P().ce.escala=e.target.value; $$('.fixa').forEach(x=>x.classList.toggle('hidden', e.target.value!=='fixa')); renderCharts(); touch(); });
-$('#projSel').addEventListener('change', e=>{ S.cur=e.target.value; saveLocal(); renderAll(); });
+$('#projSel').addEventListener('change', async e=>{ S.cur=e.target.value; saveLocal(); renderAll(); await aplicaMunicipio(false); infoMun(); });
 $('#btnNew').addEventListener('click', ()=>{ const p=novoEstudo('Novo estudo'); S.projects[p.id]=p; S.cur=p.id; p.ce.curPerf=p.ce.perfis[0].id; touch(); renderAll(); showTab('proj'); setTimeout(()=>{ const i=$('[data-p="nome"]'); i.focus(); i.select(); },50); });
 $('#btnExemplo').addEventListener('click', ()=>{ const p=exemplo(); S.projects[p.id]=p; S.cur=p.id; touch(); renderAll(); toast('Exemplo carregado'); });
 $('#btnDel').addEventListener('click', ()=>{
@@ -1009,7 +1009,7 @@ function satDraw(){
   const tl=box.querySelector('.tiles'); const z=SAT.z; const [cx,cy]=wpx(SAT.lat,SAT.lon,z);
   const x0=cx-W/2, y0=cy-H/2; const n=Math.pow(2,z);
   const need=new Set();
-  const tz=Math.min(z,17); const f=Math.pow(2,z-tz); const ts=256*f; // acima de z19, amplia os tiles do z19
+  const tz=Math.min(z,17); const f=Math.pow(2,z-tz); const ts=256*f; // acima de z17, amplia os tiles do z17 (zona rural costuma ter imagem até 17)
   for (let ty=Math.floor(y0/ts); ty<=Math.floor((y0+H)/ts); ty++) for (let tx=Math.floor(x0/ts); tx<=Math.floor((x0+W)/ts); tx++){
     const m=Math.pow(2,tz); if (ty<0||ty>=m) continue; const wx=((tx%m)+m)%m; const key=tz+'/'+ty+'/'+wx; need.add(key);
     let im=tl.querySelector(`img[data-k="${key}"]`);
@@ -1402,7 +1402,7 @@ function relDe(p){
   if (r.apres===undefined){ // textos: copia do estudo mais recente que tenha textos, senão modelo
     const outro=Object.values(S.projects).filter(x=>x!==p && x.rel && x.rel.apres!==undefined).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
     const base = outro? outro.rel : TXT_PADRAO;
-    ['apres','fisio','superf','subt'].forEach(k=>r[k]=base[k]);
+    ['apres','fisio','superf','subt'].forEach(k=>r[k]=base[k]); r._copiado=true;
     ['prof','diam','perf1','perf2','tub','horas','cimento'].forEach(k=>{ if(outro && outro.rel[k]!==undefined) r[k]=outro.rel[k]; });
   }
   const def={ cliente:'', prof:'80,00 a 100,00', diam:'6”', perf1:'De 0,00 a 20,00 m – Ø 12”', perf2:'De 20,00 a 80,00 m – Ø 6”',
@@ -1441,7 +1441,12 @@ const RELCAMPOS=[ // [chave, rótulo, tipo]
 const EMPCAMPOS=[['respNome','Responsável técnico'],['respTit','Título (ex.: Geólogo / MSc Hidrogeologia)'],['respCrea','Registro (CREA)'],['nome','Empresa'],['end','Endereço'],['fones','Telefones'],['cnpj','CNPJ'],['site','Site']];
 function renderRelForm(){
   const p=P(); if(!p) return; const r=relDe(p); const a=relAuto(p); const e=cfgEmpresa();
-  $('#relForm').innerHTML = `<div class="grid">${RELCAMPOS.map(([k,l,t])=>{
+  const nm = (typeof municipioDe==='function') ? municipioDe(p) : null;
+  const cab = !MUN ? `<p class="note w">A base de municípios do CPRM é carregada na versão instalada do app (link do GitHub). Aqui, edite os textos à mão.</p>`
+    : nm ? `<div class="note">Município: <b>${esc(nm)}</b> — seções 1.0 a 3.0 montadas com dados do diagnóstico do CPRM (1998).${r.munAuto===nm?'':' <b>Os textos abaixo ainda não são deste município.</b>'}
+        <div class="row" style="margin-top:6px"><button class="btn sm pri" id="btnMunTxt">↻ ${r.munAuto===nm?'Refazer':'Usar'} textos de ${esc(nm)}</button><a class="btn sm" href="${linkCprm(nm)}" target="_blank" rel="noopener">Ver diagnóstico do CPRM</a></div></div>`
+    : `<p class="note w">Digite o município no campo <b>Local</b> (aba Estudo), como na lista sugerida, para preencher as seções 1.0 a 3.0 automaticamente.</p>`;
+  $('#relForm').innerHTML = cab + `<div class="grid">${RELCAMPOS.map(([k,l,t])=>{
       const ph = a[k]!==undefined && a[k]!=='' ? `automático: ${a[k]}` : '';
       return t==='a' ? `<label class="f" style="grid-column:1/-1">${l}<textarea data-rel="${k}" rows="${k==='obs'||k==='tub'?3:6}" placeholder="${esc(ph)}">${esc(r[k]||'')}</textarea></label>`
                      : `<label class="f">${l}<input data-rel="${k}" value="${esc(r[k]||'')}" placeholder="${esc(ph)}"></label>`; }).join('')}</div>
@@ -1619,6 +1624,115 @@ $('#btnRel').addEventListener('click', async ()=>{
   finally{ b.textContent=old; b.disabled=false; }
 });
 
+
+/* ===================== textos automáticos por município (dados: CPRM, 1998) ===================== */
+let MUN=null, MUNIDX={};
+const MUNVOC={
+  rel:['Depressão Sertaneja','maciços residuais','tabuleiros pré-litorâneos','campos de dunas','planícies fluviais','planície litorânea','Chapada do Araripe','Chapada do Apodi','Planalto da Ibiapaba','inselbergs e serrotes','serras e cristas residuais','colinas'],
+  sol:['podzólicos','bruno não cálcicos','litólicos','planossolos','solonetz solodizado','vertissolos','latossolos','areias quartzosas','solos aluviais','regossolos','cambissolos','terra roxa estruturada','solos hidromórficos'],
+  veg:['caatinga arbustiva aberta','caatinga arbustiva densa','floresta caducifólia espinhosa (caatinga arbórea)','floresta subcaducifólia tropical pluvial (mata seca)','floresta subperenifólia tropical plúvio-nebular (mata úmida)','carrasco','cerrado','complexo vegetacional da zona litorânea','manguezais','mata ciliar com carnaúba'],
+  roc:['gnaisses','migmatitos','granitos','quartzitos','xistos','filitos','calcários cristalinos','anfibolitos']
+};
+const semAcento = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+async function carregaMun(){
+  if (MUN) return MUN;
+  try{ const r=await fetch('municipios.json',{cache:'no-cache'}); if(!r.ok) throw 0; MUN=await r.json(); }
+  catch(e){ MUN=null; return null; }
+  MUNIDX={}; Object.keys(MUN).forEach(n=>MUNIDX[semAcento(n)]=n);
+  const dl=$('#dlMun'); if (dl) dl.innerHTML=Object.keys(MUN).map(n=>`<option value="${esc(n)} / CE">`).join('');
+  return MUN;
+}
+function municipioDe(p){ if(!MUN) return null; const nome=String(p.local||'').split(/[\/\-–,]/)[0]; return MUNIDX[semAcento(nome)] || null; }
+const lst = a => { a=(a||[]).filter(Boolean); return a.length<=1 ? (a[0]||'') : a.slice(0,-1).join(', ')+' e '+a[a.length-1]; };
+const dec = (k,v) => (Array.isArray(v)? v : String(v||'').split('').map(c=>MUNVOC[k][parseInt(c,36)])).filter(Boolean);
+const mm = s => String(s).replace(/\.$/,'');
+function textosMunicipio(nome){
+  const f=MUN[nome]; if(!f) return null;
+  const prep = s => /^(porção|região|zona|faixa|micro|meso|área|parte|serra|chapada|depressão)/i.test(s) || /^Região/.test(s) ? 'na ' : 'no ';
+  // 1.0 APRESENTAÇÃO
+  let a1=`O município de ${nome}`;
+  if (f.pos) a1+=` está localizado ${prep(f.pos)}${f.pos}`; else a1+=` está localizado no estado do Ceará`;
+  a1 += f.mar? ', com litoral voltado para o oceano Atlântico.' : '.';
+  if (f.lim && f.lim.length) a1+=` Faz divisa com ${f.lim.length>1?'os municípios de ':'o município de '}${lst(f.lim)}.`;
+  if (f.area) a1+=` Ocupa uma área de aproximadamente ${f.area} km²${f.cartas?`, abrangida pelas cartas topográficas ${mm(f.cartas)}`:''}.`;
+  let a2 = f.rod && f.rod.length
+    ? `A partir de Fortaleza, o acesso ao município é feito pela${f.rod.length>1?'s rodovias':' rodovia'} ${lst(f.rod)}. A sede municipal se liga a distritos, sítios e fazendas por estradas pavimentadas e carroçáveis.`
+    : `A partir de Fortaleza, o acesso ao município é feito por rodovias federais e estaduais. A sede municipal se liga a distritos, sítios e fazendas por estradas pavimentadas e carroçáveis.`;
+  // 2.0 FISIOGRÁFICOS
+  let c=`De acordo com o Atlas do Ceará (IPLANCE, 1997) e o Plano Estadual dos Recursos Hídricos (SRH-CE, 1992), o clima de ${nome}`;
+  if (f.t && f.t.length>1) c+=` registra temperaturas entre ${f.t[0]} °C e ${f.t[1]} °C`; else if (f.t) c+=` registra temperatura média em torno de ${f.t[0]} °C`; else c+=' é tropical';
+  if (f.p && f.p.length>1) c+=`, com precipitação média anual entre ${f.p[0]} e ${f.p[1]} mm`; else if (f.p) c+=`, com precipitação média anual em torno de ${f.p[0]} mm`;
+  if (f.ch) c+=`, concentrada entre ${f.ch[0]} e ${f.ch[1]}`;
+  c+='.';
+  const rel=dec('rel',f.rel), sol=dec('sol',f.sol), veg=dec('veg',f.veg), roc=dec('roc',f.roc);
+  let r2='';
+  if (rel.length) r2+=`As principais feições de relevo são ${lst(rel)}`;
+  if (f.alt){ const [x,y]=f.alt; r2+= (r2?', com ':'As ') + (x===y? `altitudes em torno de ${x} metros` : `altitudes entre ${x} e ${y} metros`); }
+  if (r2) r2+='.';
+  if (sol.length) r2+=` Entre os solos, ocorrem ${lst(sol.map(s=>/^solos|^terra|^areias|^solonetz|^planossolos|^vertissolos|^latossolos|^regossolos|^cambissolos/.test(s)?s:'solos '+s))}`;
+  if (veg.length) r2+= (sol.length? ', e a cobertura vegetal' : ' A cobertura vegetal') + ` compreende ${lst(veg)}.`; else if (sol.length) r2+='.';
+  const G=String(f.geo||'');
+  const geo=[];
+  if (/CRIST/.test(G)) geo.push(`rochas do embasamento cristalino pré-cambriano${roc.length?` (${lst(roc)})`:''}`);
+  if (/SG/.test(G)) geo.push('arenitos paleozoicos do Grupo Serra Grande');
+  if (/ARAR/.test(G)) geo.push('rochas sedimentares da Bacia do Araripe');
+  if (/POTI/.test(G)) geo.push('rochas sedimentares cretáceas da Bacia Potiguar (formações Açu e Jandaíra)');
+  if (/INTER/.test(G)) geo.push('sedimentos das bacias sedimentares interiores');
+  if (/BARR/.test(G)) geo.push('sedimentos terciário-quaternários da Formação Barreiras');
+  if (/DUNA/.test(G)) geo.push('depósitos eólicos de dunas');
+  if (/COLU/.test(G)) geo.push('coberturas colúvio-eluviais');
+  if (/ALUV/.test(G)) geo.push('depósitos aluvionares quaternários ao longo dos principais cursos d’água');
+  const g3 = geo.length ? `Do ponto de vista geológico, ocorrem no município ${lst(geo)}.` : '';
+  // 3.1 SUPERFICIAIS
+  let s='';
+  const b=f.bac;
+  if (b){ if (/Metropolitana/.test(b) && !/ e /.test(b)) s=`O município de ${nome} está inserido na região hidrográfica das Bacias Metropolitanas.`;
+    else if (/ e /.test(b)) s=`O município de ${nome} está inserido nas bacias hidrográficas ${b.split(' e ').map(x=>/Metropolitana/.test(x)?'Metropolitanas':(/^(Alto|Médio|Baixo|Litoral)/.test(x)?'do '+x:'do rio '+x)).join(' e ')}.`;
+    else if (/^(Alto|Médio|Baixo)/.test(b)) s=`O município de ${nome} está inserido na sub-bacia do ${b}.`;
+    else if (/Litoral/.test(b)) s=`O município de ${nome} está inserido na bacia hidrográfica do Litoral.`;
+    else s=`O município de ${nome} está inserido na bacia hidrográfica do rio ${b}.`; }
+  else s=`O município de ${nome} está inserido no estado do Ceará.`;
+  if (f.cur && f.cur.length) s+=` Entre os principais cursos d’água, destaca${f.cur.length>1?'m':''}-se ${lst(f.cur.slice(0,6).map(c=>'o '+c))}.`;
+  if (f.ac && f.ac.length) s+=` Como reservatório${f.ac.length>1?'s':''} de destaque, cita${f.ac.length>1?'m':''}-se ${f.ac.length>1?'os açudes':'o açude'} ${lst(f.ac)}.`;
+  else if (f.semAc) s+=' Não há açudes de grande porte no município.';
+  if (f.abO) s+=` O abastecimento de água da sede municipal é feito ${f.abO==='CAGECE'?'pela CAGECE':f.abO==='SAAE'?'pelo SAAE (Serviço Autônomo de Água e Esgoto)':'pela Prefeitura Municipal'}.`;
+  // 3.2 SUBTERRÂNEAS
+  const dom=(f.dom||[]).map(x=>x.replace(/\s+/g,' '));
+  const tem = re => dom.some(d=>re.test(d)) || re.test(G);
+  const P=[];
+  P.push(dom.length ? `No município de ${nome} podem ser distinguidos ${dom.length===1?'um domínio hidrogeológico':(dom.length===2?'dois':dom.length===3?'três':dom.length)+' domínios hidrogeológicos'}: ${lst(dom)}.` : `No município de ${nome} ocorrem os domínios hidrogeológicos descritos a seguir.`);
+  if (tem(/cristalin|CRIST/)) P.push('As rochas cristalinas formam o chamado aquífero fissural. Como essas rochas praticamente não têm porosidade primária, a água subterrânea fica restrita a fraturas e fendas, o que resulta em reservatórios descontínuos, de pequena extensão e distribuição aleatória. Em geral, os poços apresentam vazões baixas, e a água, pela pouca circulação e pelos efeitos do clima semiárido, tende a ser salinizada. Mesmo com potencial hidrogeológico baixo, esse domínio é uma alternativa importante para o abastecimento de pequenas comunidades e como reserva estratégica em períodos de estiagem.');
+  if (tem(/barreiras|BARR/i)) P.push('Os sedimentos da Formação Barreiras apresentam grande variação de fácies, com alternância de níveis mais e menos permeáveis. Por isso, os parâmetros hidrogeológicos e a produtividade dos poços variam bastante conforme o contexto local.');
+  if (tem(/duna|DUNA/i)) P.push('As dunas são formadas por areias bem selecionadas e muito permeáveis. Funcionam como zonas de recarga e podem armazenar volumes expressivos de água de boa qualidade, o que exige cuidados com a contaminação.');
+  if (tem(/serra grande|SG/i)) P.push('Os arenitos do Grupo Serra Grande têm porosidade e permeabilidade elevadas e constituem aquíferos de boa potencialidade, capazes de fornecer vazões mais altas que as do embasamento cristalino.');
+  if (tem(/ARAR|POTI|INTER/) || dom.some(d=>/sedimentar/i.test(d) && !/aluvi|barreiras|dunas/i.test(d))) P.push('As rochas sedimentares apresentam porosidade primária e, em geral, potencial hidrogeológico superior ao do embasamento cristalino, com vazões que dependem da espessura, da granulometria e da continuidade das camadas aquíferas.');
+  if (tem(/aluvi|ALUV/i)) P.push('Os depósitos aluvionares são sedimentos arenoargilosos recentes que acompanham as calhas dos principais rios e riachos. Embora pouco espessos, a alta permeabilidade dos níveis arenosos permite vazões significativas, o que os torna um manancial de importância relativa alta, sobretudo em regiões semiáridas com predomínio de rochas cristalinas.');
+  P.push(`Fonte dos dados municipais: CPRM – Serviço Geológico do Brasil (1998). Programa de Recenseamento de Fontes de Abastecimento por Água Subterrânea no Estado do Ceará – Diagnóstico do Município de ${nome}.`);
+  return { apres:[a1,a2].join('\n\n'), fisio:[c,r2.trim(),g3].filter(Boolean).join('\n\n'), superf:s, subt:P.join('\n\n'), h:f.h };
+}
+function linkCprm(nome){ const f=MUN&&MUN[nome]; return f&&f.h ? `https://rigeo.sgb.gov.br/handle/${String(f.h).includes('/')?f.h:'doc/'+f.h}` : ''; }
+async function aplicaMunicipio(forcar){
+  await carregaMun(); const p=P(); if(!p||!MUN) return false; const nome=municipioDe(p); if(!nome) return false;
+  const r=relDe(p); const t=textosMunicipio(nome); if(!t) return false;
+  const intocado = r._copiado || ['apres','fisio','superf','subt'].every(k=>!r[k] || r[k]===TXT_PADRAO[k] || (r._ultimoAuto && r[k]===r._ultimoAuto[k]));
+  if (forcar || (r.munAuto!==nome && intocado)){
+    ['apres','fisio','superf','subt'].forEach(k=>r[k]=t[k]); r.munAuto=nome; r._ultimoAuto={apres:t.apres,fisio:t.fisio,superf:t.superf,subt:t.subt}; r._copiado=false; touch(); return true; }
+  return false;
+}
+
+function infoMun(){
+  const el=$('#munInfo'); if(!el) return; const p=P(); if(!p) return;
+  if (!MUN){ el.textContent=''; return; }
+  const nome=municipioDe(p);
+  el.innerHTML = nome ? `✓ ${esc(nome)} reconhecido — textos do relatório (seções 1 a 3) com dados do CPRM` : (p.local? 'Município não encontrado na base do CPRM (digite como na lista)' : '');
+}
+let munT=null;
+document.addEventListener('input', e=>{ if(e.target.dataset && e.target.dataset.p==='local'){ clearTimeout(munT); munT=setTimeout(async()=>{ await carregaMun(); const mudou=await aplicaMunicipio(false); infoMun(); if(!$('#tab-exp').classList.contains('hidden')) renderRelForm(); if(mudou) toast('Textos do relatório atualizados para '+municipioDe(P())); },600); } });
+document.addEventListener('click', async e=>{
+  if (e.target.id==='btnMunTxt'){ await carregaMun(); if(await aplicaMunicipio(true)){ renderRelForm(); toast('Textos refeitos com os dados do município'); } }
+});
+async function iniciaMun(){ await carregaMun(); if(!MUN) return; await aplicaMunicipio(false); infoMun(); }
+
 /* ===================== modais ===================== */
 function confirmBox(title, msg, ok){ const m=$('#modal'); $('#mTitle').textContent=title; $('#mHint').textContent=msg; $('#mText').classList.add('hidden'); $('#mOk').textContent='Confirmar'; m.classList.remove('hidden'); $('#mOk').onclick=()=>{ m.classList.add('hidden'); ok(); }; $('#mCancel').onclick=()=>m.classList.add('hidden'); }
 function showText(title, hint, text, onOk){ const m=$('#modal'); $('#mTitle').textContent=title; $('#mHint').textContent=hint; const ta=$('#mText'); ta.classList.remove('hidden'); ta.value=text; m.classList.remove('hidden');
@@ -1629,7 +1743,7 @@ function showText(title, hint, text, onOk){ const m=$('#modal'); $('#mTitle').te
 /* ===================== início ===================== */
 function renderAll(){ renderProjSel(); bindFields(); renderPills(); renderPerfFields(); renderCETable(); renderSevTable(); renderResumo(); renderCharts(); }
 let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(renderCharts,200); });
-loadLocal(); renderAll(); try{ const lt=localStorage.getItem('georesist.tab'); if(lt && $('#tab-'+lt)) showTab(lt); }catch(e){}
+loadLocal(); renderAll(); iniciaMun().then(()=>{ if(!$('#tab-exp').classList.contains('hidden')) renderRelForm(); }); try{ const lt=localStorage.getItem('georesist.tab'); if(lt && $('#tab-'+lt)) showTab(lt); }catch(e){}
 setTimeout(cloudInit, 0);
 </script>
 <script>

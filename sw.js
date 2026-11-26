@@ -1,6 +1,6 @@
 // GeoResist – funciona sem internet depois do primeiro acesso
-const APP='georesist-app-v2', TILES='georesist-tiles-v1';
-const SHELL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png'];
+const APP='georesist-app-v3', TILES='georesist-tiles-v1';
+const SHELL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','municipios.json'];
 self.addEventListener('install', e=>{ e.waitUntil(caches.open(APP).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting())); });
 self.addEventListener('activate', e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==APP&&k!==TILES).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 self.addEventListener('fetch', e=>{
